@@ -19,7 +19,9 @@ internal class CsprojManipulator
         if (createBackup)
             File.Move(_projectFile, _projectFile + ".bak");
 
-        _project.Save(_projectFile);
+        // Saving this way to avoid the XML declaration being added to the file
+        var xml = _project.ToString();
+        File.WriteAllText(_projectFile, xml);
     }
 
     public CsprojManipulator SetTargetFramework(string framework)

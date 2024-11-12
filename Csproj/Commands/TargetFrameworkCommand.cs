@@ -19,7 +19,7 @@ internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkComman
         {
             if (string.IsNullOrWhiteSpace(TargetFramework))
             {
-                return ValidationResult.Error("Target Framework is required");
+                return ValidationResult.Error("value not set for mandatory switch -t or --target");
             }
 
             return base.Validate();
