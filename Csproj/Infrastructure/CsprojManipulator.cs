@@ -27,12 +27,12 @@ internal class CsprojManipulator
         }
     }
 
-    public void Save(bool createBackup)
+    public bool Save(bool createBackup)
     {
-        if (_project == null) return;
+        if (_project == null) return false;
 
         if (!_modified)
-            return;
+            return false;
 
         if (createBackup)
             File.Move(_projectFile, _projectFile + ".bak");
@@ -42,6 +42,8 @@ internal class CsprojManipulator
         File.WriteAllText(_projectFile, xml);
 
         _modified = false;
+
+        return true;
     }
 
     private bool IsSdkStyleProject()

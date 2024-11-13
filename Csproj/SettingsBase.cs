@@ -7,13 +7,17 @@ namespace Csproj;
 
 internal abstract class SettingsBase : CommandSettings
 {
-    [Description("Project File Path. Can be a directory or a single project file")]
+    [Description("Project File Path. Can be a directory or a single project file. If not provided, the current directory is used")]
     [CommandOption("-p|--project")]
     public string ProjectPath { get; set; } = Environment.CurrentDirectory;
 
-    [Description("Recursive search for csproj files")]
+    [Description("Recursive search for csproj files.")]
     [CommandOption("-r|--recursive")]
     public bool Recursive { get; set; }
+
+    [Description("Filter project files by name. Wildcards like * and ? are supported")]
+    [CommandOption("-f|--filter")]
+    public string Filter { get; set; } = string.Empty;
 
     [Description("Create a backup of the project file")]
     [CommandOption("-b|--backup")]

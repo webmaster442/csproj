@@ -30,8 +30,10 @@ internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkComman
         }
     }
 
-    protected override void UpdateProject(CsprojManipulator project, Settings settings)
+    protected override bool UpdateProject(CsprojManipulator project, Settings settings)
     {
-        project.SetTargetFramework(settings.TargetFramework, settings.Oldframework).Save(settings.CreateBackup);
+        return project
+            .SetTargetFramework(settings.TargetFramework, settings.Oldframework)
+            .Save(settings.CreateBackup);
     }
 }

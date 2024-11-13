@@ -25,8 +25,10 @@ internal sealed class NullabilityCommand : BaseCommand<NullabilityCommand.Settin
         }
     }
 
-    protected override void UpdateProject(CsprojManipulator project, Settings settings)
+    protected override bool UpdateProject(CsprojManipulator project, Settings settings)
     {
-        project.SetNullable(settings.Nullability!.Value).Save(settings.CreateBackup);
+        return project
+            .SetNullable(settings.Nullability!.Value)
+            .Save(settings.CreateBackup);
     }
 }

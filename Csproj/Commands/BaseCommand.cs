@@ -9,7 +9,9 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
 {
     public override int Execute(CommandContext context, T settings)
     {
-        var projectFiles = ProjectProvider.GetProjectFiles(settings.ProjectPath, settings.Recursive);
+        var projectFiles = ProjectProvider.GetProjectFiles(settings.ProjectPath,
+                                                           settings.Filter,
+                                                           settings.Recursive);
 
         if (projectFiles.Count < 1)
         {
@@ -20,6 +22,8 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
         var logger = new Logger();
 
         var start = DateTime.UtcNow;
+        int modifiedCount = 0;
+
         AnsiConsole.Progress()
             .AutoRefresh(false)
             .Columns(
@@ -40,7 +44,9 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
                     ctx.Refresh();
 
                     var project = new CsprojManipulator(projecFile, logger);
-                    UpdateProject(project, settings);
+
+                    if (UpdateProject(project, settings))
+                        modifiedCount++;
 
                     task.Increment(1);
                     ctx.Refresh();
@@ -48,12 +54,14 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
             });
         var end = DateTime.UtcNow;
 
-        AnsiConsole.MarkupLine($"[green]Processed {projectFiles.Count} project files in {(end - start).TotalSeconds:0.000} seconds[/]");
+        AnsiConsole.MarkupLine($"Modified [green]{modifiedCount}[/] projects out of [blue]{projectFiles.Count}[/]");
+        AnsiConsole.MarkupLine($"Total runtime: [green]{(end - start).TotalSeconds:0.000}[/] seconds");
+        AnsiConsole.WriteLine();
 
         logger.DisplayLog();
 
         return ExitCodes.Success;
     }
 
-    protected abstract void UpdateProject(CsprojManipulator project, T settings);
+    protected abstract bool UpdateProject(CsprojManipulator project, T settings);
 }
