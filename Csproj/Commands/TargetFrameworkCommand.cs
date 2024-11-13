@@ -15,6 +15,10 @@ internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkComman
         [CommandOption("-t|--target")]
         public string TargetFramework { get; set; } = string.Empty;
 
+        [Description("The old target framework to upgrade from")]
+        [CommandOption("-o|--old")]
+        public string Oldframework { get; set; } = string.Empty;
+
         public override ValidationResult Validate()
         {
             if (string.IsNullOrWhiteSpace(TargetFramework))
@@ -28,6 +32,6 @@ internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkComman
 
     protected override void UpdateProject(CsprojManipulator project, Settings settings)
     {
-        project.SetTargetFramework(settings.TargetFramework).Save(settings.CreateBackup);
+        project.SetTargetFramework(settings.TargetFramework, settings.Oldframework).Save(settings.CreateBackup);
     }
 }

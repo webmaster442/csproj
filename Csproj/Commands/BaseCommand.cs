@@ -17,6 +17,8 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
             return ExitCodes.NoFilesFound;
         }
 
+        var logger = new Logger();
+
         var start = DateTime.UtcNow;
         AnsiConsole.Progress()
             .AutoRefresh(false)
@@ -31,12 +33,13 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
             {
                 var task = ctx.AddTask("[green]Updating project files[/]");
                 task.MaxValue(projectFiles.Count);
+
                 foreach (var projecFile in projectFiles)
                 {
                     task.Description($"Updating {Path.GetFileName(projecFile)}");
                     ctx.Refresh();
 
-                    var project = new CsprojManipulator(projecFile);
+                    var project = new CsprojManipulator(projecFile, logger);
                     UpdateProject(project, settings);
 
                     task.Increment(1);
@@ -45,7 +48,9 @@ internal abstract class BaseCommand<T> : Command<T> where T : SettingsBase
             });
         var end = DateTime.UtcNow;
 
-        AnsiConsole.MarkupLine($"[green]Updated {projectFiles.Count} project files in {(end - start).TotalSeconds:0.000} seconds[/]");
+        AnsiConsole.MarkupLine($"[green]Processed {projectFiles.Count} project files in {(end - start).TotalSeconds:0.000} seconds[/]");
+
+        logger.DisplayLog();
 
         return ExitCodes.Success;
     }

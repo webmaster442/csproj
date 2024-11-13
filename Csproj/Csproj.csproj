@@ -11,7 +11,7 @@
     <Authors>Webmaster442</Authors>
     <Description>csproj is a simple tool to change properties of multiple C# projects</Description>
     <PackageId>csproj</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <PackageProjectUrl>https://github.com/webmaster442/csproj</PackageProjectUrl>
