@@ -1,14 +1,20 @@
 ﻿using System.ComponentModel;
 
-using Csproj.Infrastructure;
+using Csproj.Domain;
+using Csproj.DomainServices;
 
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace Csproj.Commands;
 
-internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkCommand.Settings>
+internal sealed class TargetFramework : BaseCommand<TargetFramework.Settings>
 {
+    protected override void ModifyProject(ProjectManipulator manipulator, Settings settings)
+    {
+        manipulator.SetTargetFramework(settings.TargetFramework, settings.Oldframework);
+    }
+
     internal sealed class Settings : SettingsBase
     {
         [Description("The target framework to upgrade to")]
@@ -28,12 +34,5 @@ internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkComman
 
             return base.Validate();
         }
-    }
-
-    protected override bool UpdateProject(CsprojManipulator project, Settings settings)
-    {
-        return project
-            .SetTargetFramework(settings.TargetFramework, settings.Oldframework)
-            .Save(settings.CreateBackup);
     }
 }
