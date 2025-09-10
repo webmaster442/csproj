@@ -1,11 +1,14 @@
 ﻿using System.ComponentModel;
 
+using Csproj.DomainServices;
+using Csproj.Infrastructure;
+
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace Csproj.Commands;
 
-internal sealed class HeadersApply : AsyncCommand<HeadersApply.Settings>
+internal sealed class HeadersApply : Command<HeadersApply.Settings>
 {
     public class Settings : CommandSettings
     {
@@ -20,6 +23,10 @@ internal sealed class HeadersApply : AsyncCommand<HeadersApply.Settings>
         [Description("Dryrun mode. - don't do any changes, just output what would happen.")]
         [CommandOption("-D|--dryrun")]
         public bool DryRun { get; set; }
+
+        [Description("Recursive mode. Process subdirectories as well.")]
+        [CommandOption("-r|--recursive")]
+        public bool Recursive { get; set; }
 
         public Settings()
         {
@@ -39,8 +46,31 @@ internal sealed class HeadersApply : AsyncCommand<HeadersApply.Settings>
         }
     }
 
-    public override Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override int Execute(CommandContext context, Settings settings)
     {
-        throw new NotImplementedException();
+        var log = new ConsoleLog(AnsiConsole.Console);
+        Dictionary<string, string> headerModels = null!;
+        try
+        {
+            headerModels = LicenseHeaderParser.Parse(settings.TemplateFile);
+        }
+        catch (Exception ex)
+        {
+            log.Error($"Error parsing {settings.TemplateFile}: {ex.Message}");
+            return ExitCodes.Error;
+        }
+
+        if (headerModels.Count == 0)
+        {
+            log.Error($"No headers found in {settings.TemplateFile}. Aborting.");
+            return ExitCodes.Error;
+        }
+        var applier = new LicenseHeaderApplier(headerModels, log);
+
+        applier.Apply(directory: settings.Directory,
+                      dryRun: settings.DryRun, 
+                      recursive: settings.Recursive);
+
+        return ExitCodes.Success;
     }
 }

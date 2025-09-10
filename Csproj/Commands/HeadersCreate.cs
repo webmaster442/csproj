@@ -12,13 +12,13 @@ internal sealed class HeadersCreate : Command<HeadersCreate.Settings>
 {
     public class  Settings : CommandSettings
     {
-        [Description("License template file. If not specified it creates license-template.xml in current directory")]
+        [Description($"License template file. If not specified it creates {LicenseHeaderModel.LicenseTemplateFileName} in current directory")]
         [CommandOption("-t|--template")]
         public string TemplateFile { get; set; }
 
         public Settings()
         {
-            TemplateFile = Path.Combine(Environment.CurrentDirectory, DomainConstants.LicenseTemplate);
+            TemplateFile = Path.Combine(Environment.CurrentDirectory, LicenseHeaderModel.LicenseTemplateFileName);
         }
     }
 
@@ -32,6 +32,19 @@ internal sealed class HeadersCreate : Command<HeadersCreate.Settings>
             return ExitCodes.Error;
         }
 
+        var templateContent = """
+            ﻿extensions: .cs
+            //-----------------------------------------------------------------------------
+            // (c) 2025 Your Name
+            //-----------------------------------------------------------------------------
+
+            extensions: .c
+            /*-----------------------------------------------------------------------------
+             (c) 2019-2025 Your Name
+            -----------------------------------------------------------------------------*/
+            """;
+
+        File.WriteAllText(settings.TemplateFile, templateContent);
         log.Info($"Created {settings.TemplateFile}. Please edit it to fit your needs.");
 
         return ExitCodes.Success;
