@@ -49,4 +49,11 @@ internal static class SolutionFileParser
             }
         }
     }
+
+    public static IEnumerable<string> GetAllProjectPaths(string solutionPath)
+    {
+        using var reader = new StreamReader(solutionPath);
+        var folder = Path.GetDirectoryName(solutionPath) ?? "";
+        return GetProjects(reader, ".csproj", folder).ToList();
+    }
 }
