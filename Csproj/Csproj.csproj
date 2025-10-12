@@ -6,10 +6,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <Title>Csproj</Title>
+    <Authors>webmaster442</Authors>
+    <Description>csproj is a simple tool to change properties of multiple C# projects </Description>
+    <PackageProjectUrl>https://github.com/webmaster442/csproj</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/webmaster442/csproj</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>devops;automation;dotnet;tooling;multi;project;files</PackageTags>
+    <PackAsTool>True</PackAsTool>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Csproj.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
