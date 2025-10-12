@@ -21,6 +21,9 @@ app.Configure(cfg =>
     cfg.AddCommand<Csproj.Commands.Version>("version")
         .WithDescription("Set project versions");
 
+    cfg.AddCommand<Csproj.Commands.PruneLinks>("prunelinks")
+       .WithDescription("Inspect and remove redundant project/NuGet references in solution projects");
+
     cfg.AddBranch("licenseheaders", headers =>
     {
         headers.AddCommand<Csproj.Commands.HeadersApply>("apply")
