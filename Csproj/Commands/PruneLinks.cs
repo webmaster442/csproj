@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel;
-using System.Xml;
 
 using Spectre.Console.Cli;
 using Spectre.Console;
 using Csproj.DomainServices;
+using Csproj.Infrastructure;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable ClassNeverInstantiated.Global
@@ -72,7 +72,7 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
                 return -1;
             }
             // Recursively collect all referenced projects
-            projects = CollectAllReferencedProjects(settings.CsprojPath);
+            projects = ProjectManipulator.CollectAllReferencedProjects(settings.CsprojPath);
             rootPath = settings.CsprojPath;
         }
 
@@ -96,7 +96,7 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
             foreach (var proj in displayRootProjects)
             {
                 var tree = new Tree($"[bold]{Path.GetFileName(proj)}[/]");
-                PrintReferenceTree(displayGraph, proj, tree, []);
+                ProjectManipulator.PrintReferenceTree(displayGraph, proj, tree, []);
                 AnsiConsole.Write(tree);
             }
         }
@@ -127,7 +127,7 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
                 mdRootProjects = allProjects.Except(mdReferencedProjects).ToList();
                 mdTitle = mdRootProjects.Count > 0 ? Path.GetFileNameWithoutExtension(mdRootProjects[0]) : "dependencies";
             }
-            var mermaidMd = GenerateMermaidMarkdown(displayGraph, mdTitle, outputFileName, mdRootProjects);
+            var mermaidMd = GraphMarkdownUtil.GenerateMermaidMarkdown(displayGraph, mdTitle, outputFileName, mdRootProjects);
             File.WriteAllText(outputPath, mermaidMd);
             AnsiConsole.MarkupLine($"[green]Dependency graph written to:[/] {outputPath}");
         }
@@ -141,108 +141,5 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
         }
 
         return 0;
-    }
-
-    private static void PrintReferenceTree(Dictionary<string, List<string>> graph, string proj, object parent, HashSet<string> visited)
-    {
-        visited.Add(proj);
-        foreach (var reference in graph[proj])
-        {
-            var nodeLabel = reference.EndsWith(".csproj") ? Path.GetFileName(reference) : reference;
-            TreeNode child;
-            switch (parent)
-            {
-                case Tree tree:
-                    child = tree.AddNode(nodeLabel);
-                    break;
-                case TreeNode node:
-                    child = node.AddNode(nodeLabel);
-                    break;
-                default:
-                    continue;
-            }
-            if (reference.EndsWith(".csproj") && !visited.Contains(reference) && graph.ContainsKey(reference))
-            {
-                PrintReferenceTree(graph, reference, child, visited);
-            }
-        }
-    }
-
-    private static string GenerateMermaidMarkdown(Dictionary<string, List<string>> graph, string title, string fileName, List<string> rootProjects)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"# {fileName}\n");
-        sb.AppendLine("````mermaid");
-        sb.AppendLine("---");
-        sb.AppendLine($"title: {title}");
-        sb.AppendLine("---");
-        sb.AppendLine("graph TD");
-        var visited = new HashSet<string>();
-        foreach (var root in rootProjects)
-        {
-            WriteMermaidEdges(graph, root, sb, visited);
-        }
-        sb.AppendLine("````");
-        return sb.ToString();
-    }
-
-    private static void WriteMermaidEdges(Dictionary<string, List<string>> graph, string proj, System.Text.StringBuilder sb, HashSet<string> visited)
-    {
-        if (!visited.Add(proj)) return;
-        var from = Path.GetFileNameWithoutExtension(proj);
-        if (!graph.TryGetValue(proj, out var refs)) return;
-        foreach (var toProj in refs.Where(x => x.EndsWith(CsProj)))
-        {
-            var to = Path.GetFileNameWithoutExtension(toProj);
-            sb.AppendLine($"    {from} --> {to}");
-            WriteMermaidEdges(graph, toProj, sb, visited);
-        }
-    }
-
-    private static List<string> CollectAllReferencedProjects(string rootCsproj)
-    {
-        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var stack = new Stack<string>();
-        stack.Push(rootCsproj);
-        while (stack.Count > 0)
-        {
-            var current = stack.Pop();
-            if (!found.Add(current)) continue;
-            foreach (var reference in GetProjectReferencesFromFile(current)
-                         .Where(reference => reference.EndsWith(CsProj, StringComparison.OrdinalIgnoreCase)
-                                             && !found.Contains(reference)
-                                             && File.Exists(reference)))
-            {
-                stack.Push(reference);
-            }
-        }
-        return found.ToList();
-    }
-
-    // Helper to parse .csproj and get all referenced .csproj files (absolute paths)
-    private static List<string> GetProjectReferencesFromFile(string csprojPath)
-    {
-        var references = new List<string>();
-        try
-        {
-            var doc = new XmlDocument();
-            doc.Load(csprojPath);
-            var nodes = doc.SelectNodes("//ProjectReference[@Include]");
-            if (nodes != null)
-            {
-                var baseDir = Path.GetDirectoryName(csprojPath) ?? string.Empty;
-                references.AddRange(
-                    nodes.OfType<XmlNode>()
-                        .Select(node => node.Attributes?["Include"]?.Value)
-                        .Where(include => !string.IsNullOrWhiteSpace(include))
-                        .Select(include => Path.GetFullPath(Path.Combine(baseDir, include!)))
-                );
-            }
-        }
-        catch
-        {
-            // Ignore parse errors, treat as no references
-        }
-        return references;
     }
 }
