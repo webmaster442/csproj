@@ -16,7 +16,7 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
     
     public class Settings : CommandSettings
     {
-        [Description("Solution file path (.sln)")]
+        [Description("Solution file path (.sln or .slnx)")]
         [CommandOption("-s|--solution")]
         public string SolutionPath { get; set; } = string.Empty;
 
@@ -59,6 +59,12 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
             if (!File.Exists(settings.SolutionPath))
             {
                 AnsiConsole.MarkupLine($"[red]Solution file not found: {settings.SolutionPath}[/]");
+                return -1;
+            }
+            var ext = Path.GetExtension(settings.SolutionPath).ToLowerInvariant();
+            if (ext != ".sln" && ext != ".slnx")
+            {
+                AnsiConsole.MarkupLine($"[red]Unsupported solution file extension: {ext}. Only .sln and .slnx are supported.[/]");
                 return -1;
             }
             projects = SolutionFileParser.GetAllProjectPaths(settings.SolutionPath).ToList();
