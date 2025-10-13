@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel;
+using System.Xml;
+
 using Spectre.Console.Cli;
 using Spectre.Console;
 using Csproj.DomainServices;
@@ -10,11 +12,17 @@ namespace Csproj.Commands;
 
 internal sealed class PruneLinks : Command<PruneLinks.Settings>
 {
+    private const string CsProj = ".csproj";
+    
     public class Settings : CommandSettings
     {
         [Description("Solution file path (.sln)")]
         [CommandOption("-s|--solution")]
         public string SolutionPath { get; set; } = string.Empty;
+
+        [Description("Project file path (.csproj)")]
+        [CommandOption("--csproj")]
+        public string CsprojPath { get; set; } = string.Empty;
 
         [Description("Dryrun mode. Only show what would be changed.")]
         [CommandOption("-D|--dryrun")]
@@ -35,32 +43,52 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        if (string.IsNullOrWhiteSpace(settings.SolutionPath) || !File.Exists(settings.SolutionPath))
+        // Validate that exactly one of --solution or --csproj is provided
+        bool hasSolution = !string.IsNullOrWhiteSpace(settings.SolutionPath);
+        bool hasCsproj = !string.IsNullOrWhiteSpace(settings.CsprojPath);
+        if (hasSolution == hasCsproj)
         {
-            AnsiConsole.MarkupLine($"[red]Solution file not found: {settings.SolutionPath}[/]");
+            AnsiConsole.MarkupLine("[red]You must specify either --solution or --csproj, but not both.[/]");
             return -1;
         }
 
-        var projects = SolutionFileParser.GetAllProjectPaths(settings.SolutionPath).ToList();
+        List<string> projects;
+        string rootPath;
+        if (hasSolution)
+        {
+            if (!File.Exists(settings.SolutionPath))
+            {
+                AnsiConsole.MarkupLine($"[red]Solution file not found: {settings.SolutionPath}[/]");
+                return -1;
+            }
+            projects = SolutionFileParser.GetAllProjectPaths(settings.SolutionPath).ToList();
+            rootPath = settings.SolutionPath;
+        }
+        else
+        {
+            if (!File.Exists(settings.CsprojPath))
+            {
+                AnsiConsole.MarkupLine($"[red]Project file not found: {settings.CsprojPath}[/]");
+                return -1;
+            }
+            // Recursively collect all referenced projects
+            projects = CollectAllReferencedProjects(settings.CsprojPath);
+            rootPath = settings.CsprojPath;
+        }
+
         var originalGraph = ProjectManipulator.BuildDependencyGraph(projects);
-
-        // Find root project(s) once
         var allProjects = projects.ToHashSet();
-
-        // Prune redundant links and get updated graph
         var changes = ProjectManipulator.PruneRedundantLinks(originalGraph, settings.DryRun, settings.Backup);
-        var displayGraph = settings.DryRun ? originalGraph : ProjectManipulator.BuildDependencyGraph(projects); // Rebuild after prune
-
+        var displayGraph = settings.DryRun ? originalGraph : ProjectManipulator.BuildDependencyGraph(projects);
         if (!settings.DryRun)
         {
-            // Rebuild graph after pruning
             displayGraph = ProjectManipulator.BuildDependencyGraph(projects);
         }
 
         if (settings.Verbose)
         {
             var displayReferencedProjects = new HashSet<string>();
-            foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(".csproj")))
+            foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(CsProj)))
             {
                 displayReferencedProjects.Add(r);
             }
@@ -74,32 +102,32 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
         }
 
         // Determine output file path for --graph-md
-        string? outputPath;
-        var solutionDir = Path.GetDirectoryName(settings.SolutionPath);
         if (!string.IsNullOrWhiteSpace(settings.GraphMdPath))
         {
-            outputPath = Path.IsPathRooted(settings.GraphMdPath)
+            var solutionDir = Path.GetDirectoryName(rootPath);
+            var outputPath = Path.IsPathRooted(settings.GraphMdPath)
                 ? settings.GraphMdPath
                 : Path.Combine(solutionDir ?? string.Empty, settings.GraphMdPath);
-        }
-        else
-        {
-            var solutionName = Path.GetFileNameWithoutExtension(settings.SolutionPath);
-            outputPath = Path.Combine(solutionDir ?? string.Empty, solutionName + ".md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(outputPath))
-        {
             var outputFileName = Path.GetFileName(outputPath);
             // Use displayGraph for Markdown
             var mdReferencedProjects = new HashSet<string>();
-            foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(".csproj")))
+            foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(CsProj)))
             {
                 mdReferencedProjects.Add(r);
             }
-            var mdRootProjects = allProjects.Except(mdReferencedProjects).ToList();
-            var mdTitle = mdRootProjects.Count > 0 ? Path.GetFileNameWithoutExtension(mdRootProjects[0]) : "dependencies";
-            var mermaidMd = GenerateMermaidMarkdown(displayGraph, mdTitle, outputFileName);
+            List<string> mdRootProjects;
+            string mdTitle;
+            if (hasCsproj)
+            {
+                mdRootProjects = [settings.CsprojPath];
+                mdTitle = Path.GetFileNameWithoutExtension(settings.CsprojPath);
+            }
+            else
+            {
+                mdRootProjects = allProjects.Except(mdReferencedProjects).ToList();
+                mdTitle = mdRootProjects.Count > 0 ? Path.GetFileNameWithoutExtension(mdRootProjects[0]) : "dependencies";
+            }
+            var mermaidMd = GenerateMermaidMarkdown(displayGraph, mdTitle, outputFileName, mdRootProjects);
             File.WriteAllText(outputPath, mermaidMd);
             AnsiConsole.MarkupLine($"[green]Dependency graph written to:[/] {outputPath}");
         }
@@ -140,7 +168,7 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
         }
     }
 
-    private static string GenerateMermaidMarkdown(Dictionary<string, List<string>> graph, string title, string fileName)
+    private static string GenerateMermaidMarkdown(Dictionary<string, List<string>> graph, string title, string fileName, List<string> rootProjects)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"# {fileName}\n");
@@ -149,16 +177,72 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
         sb.AppendLine($"title: {title}");
         sb.AppendLine("---");
         sb.AppendLine("graph TD");
-        foreach (var kvp in graph)
+        var visited = new HashSet<string>();
+        foreach (var root in rootProjects)
         {
-            var from = Path.GetFileNameWithoutExtension(kvp.Key);
-            foreach (var toProj in kvp.Value.Where(x => x.EndsWith(".csproj")))
-            {
-                var to = Path.GetFileNameWithoutExtension(toProj);
-                sb.AppendLine($"    {from} --> {to}");
-            }
+            WriteMermaidEdges(graph, root, sb, visited);
         }
         sb.AppendLine("````");
         return sb.ToString();
+    }
+
+    private static void WriteMermaidEdges(Dictionary<string, List<string>> graph, string proj, System.Text.StringBuilder sb, HashSet<string> visited)
+    {
+        if (!visited.Add(proj)) return;
+        var from = Path.GetFileNameWithoutExtension(proj);
+        if (!graph.TryGetValue(proj, out var refs)) return;
+        foreach (var toProj in refs.Where(x => x.EndsWith(CsProj)))
+        {
+            var to = Path.GetFileNameWithoutExtension(toProj);
+            sb.AppendLine($"    {from} --> {to}");
+            WriteMermaidEdges(graph, toProj, sb, visited);
+        }
+    }
+
+    private static List<string> CollectAllReferencedProjects(string rootCsproj)
+    {
+        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var stack = new Stack<string>();
+        stack.Push(rootCsproj);
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (!found.Add(current)) continue;
+            foreach (var reference in GetProjectReferencesFromFile(current)
+                         .Where(reference => reference.EndsWith(CsProj, StringComparison.OrdinalIgnoreCase)
+                                             && !found.Contains(reference)
+                                             && File.Exists(reference)))
+            {
+                stack.Push(reference);
+            }
+        }
+        return found.ToList();
+    }
+
+    // Helper to parse .csproj and get all referenced .csproj files (absolute paths)
+    private static List<string> GetProjectReferencesFromFile(string csprojPath)
+    {
+        var references = new List<string>();
+        try
+        {
+            var doc = new XmlDocument();
+            doc.Load(csprojPath);
+            var nodes = doc.SelectNodes("//ProjectReference[@Include]");
+            if (nodes != null)
+            {
+                var baseDir = Path.GetDirectoryName(csprojPath) ?? string.Empty;
+                references.AddRange(
+                    nodes.OfType<XmlNode>()
+                        .Select(node => node.Attributes?["Include"]?.Value)
+                        .Where(include => !string.IsNullOrWhiteSpace(include))
+                        .Select(include => Path.GetFullPath(Path.Combine(baseDir, include!)))
+                );
+            }
+        }
+        catch
+        {
+            // Ignore parse errors, treat as no references
+        }
+        return references;
     }
 }
