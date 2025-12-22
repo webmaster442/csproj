@@ -10,7 +10,7 @@ namespace CsProj.Infrastructure;
 
 internal static class Loader
 {
-    public static async Task<Either<LoadError, IReadOnlyList<CsharpProject>>> LoadProjectsAsync(string path,
+    public static async Task<Either<IReadOnlyList<CsharpProject>, LoadError>> LoadProjectsAsync(string path,
                                                                                                 ILogger logger,
                                                                                                 CancellationToken cancellationToken = default)
     {

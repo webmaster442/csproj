@@ -1,4 +1,6 @@
-﻿namespace CsProj.Core;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace CsProj.Core;
 
 internal class Either<TSuccess, TFailure>
 {
@@ -27,19 +29,25 @@ internal class Either<TSuccess, TFailure>
     public static implicit operator Either<TSuccess, TFailure>(TFailure failure)
         => new Either<TSuccess, TFailure>(failure);
 
-    public void OnSuccess(Action<TSuccess> action)
+    public bool IsSuccess([MaybeNullWhen(false)] out TSuccess? success)
     {
-        if (_isSuccess && _success != null)
+        if (_isSuccess)
         {
-            action(_success);
+            success = _success;
+            return true;
         }
+        success = default;
+        return false;
     }
 
-    public void OnFailure(Action<TFailure> action)
+    public bool IsFailure([MaybeNullWhen(false)] out TFailure? failure)
     {
-        if (!_isSuccess && _failure != null)
+        if (!_isSuccess)
         {
-            action(_failure);
+            failure = _failure;
+            return true;
         }
+        failure = default;
+        return false;
     }
 }

@@ -9,15 +9,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="18.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="10.0.1" />
     <PackageReference Include="Spectre.Console" Version="0.54.0" />
     <PackageReference Include="Spectre.Console.Analyzer" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Commands\" />
+    <PackageReference Include="Spectre.Console.Cli" Version="1.0.0-alpha.0.12" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,7 @@
 ﻿using System.Xml.Linq;
 
+using Microsoft.Build.Evaluation;
+
 namespace CsProj.Core;
 
 
@@ -12,6 +14,9 @@ internal sealed class CsharpProject
         AbsolutePath = absolutePath;
         _document = document;
         WasModified = false;
+
+        var sdkAttribute = document?.Element("Project")?.Attribute("Sdk");
+        IsSdkStyleProject = sdkAttribute != null && !string.IsNullOrWhiteSpace(sdkAttribute.Value);
     }
 
     public string AbsolutePath { get; }
@@ -20,13 +25,20 @@ internal sealed class CsharpProject
 
     public bool WasModified { get; private set; }
 
+    public bool IsSdkStyleProject { get; }
+
     public void SetNullable(bool enabled)
     {
         var value = enabled ? "enable" : "disable";
-        var nullableElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("Nullable");
+        var nullableElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("Nullable");
+
         if (nullableElement == null)
         {
-            _document.Element("Project")?.Element("PropertyGroup")?.Add(new XElement("Nullable", value));
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("Nullable", value));
         }
         else
         {
@@ -38,7 +50,10 @@ internal sealed class CsharpProject
 
     public void SetTargetFramework(string targetFramework, string? oldFramework = null)
     {
-        var targetFrameworkElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("TargetFramework");
+        var targetFrameworkElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("TargetFramework");
+
         if (targetFrameworkElement == null)
         {
             throw new InvalidOperationException("TargetFramework element not found in the project file.");
@@ -64,7 +79,9 @@ internal sealed class CsharpProject
         var versionElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("Version");
         if (versionElement == null)
         {
-            _document.Element("Project")?.Element("PropertyGroup")?.Add(new XElement("Version", versionString));
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("Version", versionString));
         }
         else
         {
@@ -75,10 +92,15 @@ internal sealed class CsharpProject
 
     public void SetAssemblyVersion(string versionString)
     {
-        var assemblyVersionElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("AssemblyVersion");
+        var assemblyVersionElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("AssemblyVersion");
+
         if (assemblyVersionElement == null)
         {
-            _document.Element("Project")?.Element("PropertyGroup")?.Add(new XElement("AssemblyVersion", versionString));
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("AssemblyVersion", versionString));
         }
         else
         {
@@ -93,7 +115,9 @@ internal sealed class CsharpProject
         var fileVersionElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("FileVersion");
         if (fileVersionElement == null)
         {
-            _document.Element("Project")?.Element("PropertyGroup")?.Add(new XElement("FileVersion", versionString));
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("FileVersion", versionString));
         }
         else
         {
@@ -102,6 +126,4 @@ internal sealed class CsharpProject
 
         WasModified = true;
     }
-
-
 }
