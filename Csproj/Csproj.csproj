@@ -2,39 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Title>Csproj</Title>
-    <Authors>webmaster442</Authors>
-    <Description>csproj is a simple tool to change properties of multiple C# projects </Description>
-    <PackageProjectUrl>https://github.com/webmaster442/csproj</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/webmaster442/csproj</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>devops;automation;dotnet;tooling;multi;project;files</PackageTags>
-    <PackAsTool>True</PackAsTool>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Csproj.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Spectre.Console" Version="0.51.1" />
-    <PackageReference Include="Spectre.Console.Analyzer" Version="1.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Spectre.Console.Cli" Version="0.51.1" />
-  </ItemGroup>
 </Project>
