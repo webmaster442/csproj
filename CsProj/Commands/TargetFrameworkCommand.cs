@@ -10,7 +10,7 @@ namespace CsProj.Commands;
 
 internal sealed class TargetFrameworkCommand : BaseModifyCommand<TargetFrameworkCommand.Settings>
 {
-    internal sealed class Settings : BaseModifySettings
+    public sealed class Settings : BaseModifySettings
     {
         [Description("The target framework to upgrade to")]
         [CommandOption(CommandOptions.Target)]

@@ -10,7 +10,7 @@ namespace CsProj.Commands;
 
 internal sealed class NullableCommand : BaseModifyCommand<NullableCommand.Settings>
 {
-    internal sealed class Settings : BaseModifySettings
+    public sealed class Settings : BaseModifySettings
     {
         [Description("Enable or disable nullable reference types")]
         [CommandOption(CommandOptions.Enable)]

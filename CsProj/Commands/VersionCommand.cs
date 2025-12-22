@@ -10,7 +10,7 @@ namespace CsProj.Commands;
 
 internal sealed class VersionCommand : BaseModifyCommand<VersionCommand.Settings>
 {
-    internal sealed class Settings : BaseModifySettings
+    public sealed class Settings : BaseModifySettings
     {
         [Description("The version prefix to set")]
         [CommandOption(CommandOptions.Version)]

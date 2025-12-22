@@ -8,6 +8,6 @@ internal static class CommandOptions
     public const string Target = "-t|--target";
     public const string Old = "-o|--old";
     public const string Version = "-v|--version";
-    public const string FileVersion = "-fv|--file";
-    public const string AssemblyVersion = "-av|--assembly";
+    public const string FileVersion = "--file";
+    public const string AssemblyVersion = "--assembly";
 }

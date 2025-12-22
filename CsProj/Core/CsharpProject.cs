@@ -1,9 +1,6 @@
 ﻿using System.Xml.Linq;
 
-using Microsoft.Build.Evaluation;
-
 namespace CsProj.Core;
-
 
 internal sealed class CsharpProject : IReadonlyCsharpProject
 {
@@ -125,5 +122,55 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
         }
 
         WasModified = true;
+    }
+
+    public IEnumerable<PackageReference> GetPackageReferences()
+    {
+        var packages = _document.Descendants("PackageReference");
+        foreach (var package in packages)
+        {
+            var includeAttribute = package.Attribute("Include");
+            var versionAttribute = package.Attribute("Version");
+            if (includeAttribute != null)
+            {
+                Version? version = null;
+                if (versionAttribute != null 
+                    && Version.TryParse(versionAttribute.Value, out var parsedVersion))
+                {
+                    version = parsedVersion;
+                }
+                yield return new(includeAttribute.Value, version);
+            }
+        }
+    }
+
+    public void RemovePackageReference(string packageName)
+    {
+        var packages = _document.Descendants("PackageReference")
+            .Where(pr => pr.Attribute("Include")?.Value == packageName)
+            .ToList();
+
+        foreach (var package in packages)
+        {
+            package.Remove();
+            WasModified = true;
+        }
+    }
+
+    public void RemovePackageReferenceVersion(string packageName)
+    {
+        var packages = _document.Descendants("PackageReference")
+            .Where(pr => pr.Attribute("Include")?.Value == packageName)
+            .ToList();
+
+        foreach (var package in packages)
+        {
+            var versionAttribute = package.Attribute("Version");
+            if (versionAttribute != null)
+            {
+                versionAttribute.Remove();
+                WasModified = true;
+            }
+        }
     }
 }

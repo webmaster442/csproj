@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CsProj": {
+      "commandName": "Project",
+      "commandLineArgs": "list-nugets e:\\old"
+    }
+  }
+}

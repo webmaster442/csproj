@@ -1,11 +1,33 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 
 using CsProj.Domain;
+
+using Spectre.Console;
 
 namespace CsProj.Core;
 
 internal static class Extensions
 {
+    extension (IAnsiConsole console)
+    {
+        public void Table<TElement>(IEnumerable<TElement> data)
+        {
+            var properties = typeof(TElement).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var table = new Table();
+            foreach (var property in properties)
+            {
+                table.AddColumn(property.Name.EscapeMarkup());
+            }
+            foreach (var item in data)
+            {
+                var values = properties.Select(p => p.GetValue(item)?.ToString()?.EscapeMarkup() ?? string.Empty).ToArray();
+                table.AddRow(values);
+            }
+            console.Write(table);
+        }
+    }
+
     extension (ILogger logger)
     {
         public void Error(LoadError loadError)

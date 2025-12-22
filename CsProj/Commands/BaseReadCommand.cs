@@ -63,5 +63,5 @@ internal abstract class  BaseReadCommand<Tsettings> : AsyncCommand<Tsettings>
         }
     }
 
-    protected abstract void CollectDataFromProjects(IEnumerable<CsharpProject> sdkprojects, Tsettings settings, CancellationToken cancellationToken);
+    protected abstract void CollectDataFromProjects(IEnumerable<IReadonlyCsharpProject> sdkprojects, Tsettings settings, CancellationToken cancellationToken);
 }

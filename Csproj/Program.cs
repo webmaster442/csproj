@@ -32,6 +32,10 @@ app.Configure(config =>
     config
         .AddCommand<CsProj.Commands.VersionCommand>("version")
         .WithDescription("Set project versions");
+
+    config
+        .AddCommand<CsProj.Commands.ListNugets>("list-nugets")
+        .WithDescription("List all NuGet package references in the project(s)");
 });
 
 return await app.RunAsync(args);
