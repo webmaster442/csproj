@@ -1,28 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
+
+// ReSharper disable InvertIf
 
 namespace Csproj.DomainServices;
+
 internal static class SolutionFileParser
 {
-    public static IEnumerable<string> GetProjects(TextReader solutionContents, string projectExtension, string solutionFolder)
+    /// <summary>
+    /// Parses a solution file and retrieves the paths of all projects with the specified extension.
+    /// </summary>
+    /// <param name="solutionContents">The contents of the solution file as a <see cref="TextReader"/>.</param>
+    /// <param name="projectExtension">The file extension of the projects to retrieve (e.g., ".csproj").</param>
+    /// <param name="solutionFolder">The folder containing the solution file.</param>
+    /// <returns>An enumerable of full paths to the projects with the specified extension.</returns>
+    public static IEnumerable<string> GetProjects(
+        TextReader solutionContents,
+        string projectExtension,
+        string solutionFolder)
     {
         string? firstLine = solutionContents.ReadLine();
 
-        return firstLine == null
-            ? Enumerable.Empty<string>()
-            : firstLine.StartsWith("<Solution>")
-                ? GetProjectsFromSlnx(solutionContents, projectExtension, solutionFolder)
-                : GetProjectsFromSln(solutionContents, projectExtension, solutionFolder);
+        if (firstLine is null)
+        {
+            return [];
+        }
+        
+        // Determines the solution type and calls the appropriate parser.
+        return firstLine.StartsWith("<Solution>")
+            ? GetProjectsFromSlnx(solutionContents, projectExtension, solutionFolder)
+            : GetProjectsFromSln(solutionContents, projectExtension, solutionFolder);
     }
 
-    private static IEnumerable<string> GetProjectsFromSlnx(TextReader textReader, string projectExtension, string solutionFolder)
+    /// <summary>
+    /// Parses a .slnx solution file and retrieves the paths of all projects with the specified extension.
+    /// </summary>
+    /// <param name="textReader">The contents of the .slnx file as a <see cref="TextReader"/>.</param>
+    /// <param name="projectExtension">The file extension of the projects to retrieve (e.g., ".csproj").</param>
+    /// <param name="solutionFolder">The folder containing the solution file.</param>
+    /// <returns>An enumerable of full paths to the projects with the specified extension.</returns>
+    private static IEnumerable<string> GetProjectsFromSlnx(
+        TextReader textReader,
+        string projectExtension,
+        string solutionFolder)
     {
         XDocument xml = XDocument.Parse($"<Solution>{textReader.ReadToEnd()}");
-        var projectElements = xml.Root?.Elements().Where(element => element.Name == "Project") ?? Enumerable.Empty<XElement>();
+        // Recursively find all <Project> elements
+        var projectElements = xml.Descendants("Project");
         foreach (var projectElement in projectElements)
         {
             string? path = projectElement.Attribute("Path")?.Value;
@@ -33,10 +56,19 @@ internal static class SolutionFileParser
         }
     }
 
-    private static IEnumerable<string> GetProjectsFromSln(TextReader solutionContents, string projectExtension, string solutionFolder)
+    /// <summary>
+    /// Parses a .sln solution file and retrieves the paths of all projects with the specified extension.
+    /// </summary>
+    /// <param name="solutionContents">The contents of the .sln file as a <see cref="TextReader"/>.</param>
+    /// <param name="projectExtension">The file extension of the projects to retrieve (e.g., ".csproj").</param>
+    /// <param name="solutionFolder">The folder containing the solution file.</param>
+    /// <returns>An enumerable of full paths to the projects with the specified extension.</returns>
+    private static IEnumerable<string> GetProjectsFromSln(
+        TextReader solutionContents,
+        string projectExtension,
+        string solutionFolder)
     {
-        string? line = null;
-        while ((line = solutionContents.ReadLine()) != null)
+        while (solutionContents.ReadLine() is { } line)
         {
             if (line.StartsWith("Project("))
             {
@@ -50,6 +82,11 @@ internal static class SolutionFileParser
         }
     }
 
+    /// <summary>
+    /// Retrieves the paths of all projects in a solution file.
+    /// </summary>
+    /// <param name="solutionPath">The full path to the solution file.</param>
+    /// <returns>An enumerable of full paths to the projects in the solution file.</returns>
     public static IEnumerable<string> GetAllProjectPaths(string solutionPath)
     {
         using var reader = new StreamReader(solutionPath);

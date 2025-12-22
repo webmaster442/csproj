@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
+
 using Spectre.Console.Cli;
 using Spectre.Console;
 using Csproj.DomainServices;
+using Csproj.Infrastructure;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable ClassNeverInstantiated.Global
@@ -10,11 +12,17 @@ namespace Csproj.Commands;
 
 internal sealed class PruneLinks : Command<PruneLinks.Settings>
 {
+    private const string CsProj = ".csproj";
+    
     public class Settings : CommandSettings
     {
-        [Description("Solution file path (.sln)")]
+        [Description("Solution file path (.sln or .slnx)")]
         [CommandOption("-s|--solution")]
         public string SolutionPath { get; set; } = string.Empty;
+
+        [Description("Project file path (.csproj)")]
+        [CommandOption("--csproj")]
+        public string CsprojPath { get; set; } = string.Empty;
 
         [Description("Dryrun mode. Only show what would be changed.")]
         [CommandOption("-D|--dryrun")]
@@ -33,132 +41,192 @@ internal sealed class PruneLinks : Command<PruneLinks.Settings>
         public string GraphMdPath { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Executes the prune links command, validating input and performing project reference pruning.
+    /// </summary>
+    /// <param name="context">The command context.</param>
+    /// <param name="settings">The command settings. See <see cref="Settings"/>.</param>
+    /// <returns>Exit code: 0 for success, -1 for error.</returns>
     public override int Execute(CommandContext context, Settings settings)
     {
-        if (string.IsNullOrWhiteSpace(settings.SolutionPath) || !File.Exists(settings.SolutionPath))
+        var errorMessage = ValidateInput(settings);
+        if (errorMessage is not null)
         {
-            AnsiConsole.MarkupLine($"[red]Solution file not found: {settings.SolutionPath}[/]");
+            AnsiConsole.MarkupLine($"[red]{errorMessage}[/]");
             return -1;
         }
 
-        var projects = SolutionFileParser.GetAllProjectPaths(settings.SolutionPath).ToList();
-        var originalGraph = ProjectManipulator.BuildDependencyGraph(projects);
-
-        // Find root project(s) once
+        (List<string> projects, string rootPath) = GetProjectsAndRootPath(settings);
         var allProjects = projects.ToHashSet();
-
-        // Prune redundant links and get updated graph
+        var originalGraph = ProjectManipulator.BuildDependencyGraph(projects);
         var changes = ProjectManipulator.PruneRedundantLinks(originalGraph, settings.DryRun, settings.Backup);
-        var displayGraph = settings.DryRun ? originalGraph : ProjectManipulator.BuildDependencyGraph(projects); // Rebuild after prune
-
-        if (!settings.DryRun)
-        {
-            // Rebuild graph after pruning
-            displayGraph = ProjectManipulator.BuildDependencyGraph(projects);
-        }
+        var displayGraph = SelectDisplayGraph(settings, projects, originalGraph);
 
         if (settings.Verbose)
         {
-            var displayReferencedProjects = new HashSet<string>();
-            foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(".csproj")))
-            {
-                displayReferencedProjects.Add(r);
-            }
-            var displayRootProjects = allProjects.Except(displayReferencedProjects).ToList();
-            foreach (var proj in displayRootProjects)
-            {
-                var tree = new Tree($"[bold]{Path.GetFileName(proj)}[/]");
-                PrintReferenceTree(displayGraph, proj, tree, []);
-                AnsiConsole.Write(tree);
-            }
+            DisplayReferenceTrees(displayGraph, allProjects);
         }
 
-        // Determine output file path for --graph-md
-        string? outputPath;
-        var solutionDir = Path.GetDirectoryName(settings.SolutionPath);
         if (!string.IsNullOrWhiteSpace(settings.GraphMdPath))
         {
-            outputPath = Path.IsPathRooted(settings.GraphMdPath)
-                ? settings.GraphMdPath
-                : Path.Combine(solutionDir ?? string.Empty, settings.GraphMdPath);
-        }
-        else
-        {
-            var solutionName = Path.GetFileNameWithoutExtension(settings.SolutionPath);
-            outputPath = Path.Combine(solutionDir ?? string.Empty, solutionName + ".md");
+            OutputDependencyGraphMarkdown(settings, displayGraph, allProjects, rootPath);
         }
 
-        if (!string.IsNullOrWhiteSpace(outputPath))
-        {
-            var outputFileName = Path.GetFileName(outputPath);
-            // Use displayGraph for Markdown
-            var mdReferencedProjects = new HashSet<string>();
-            foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(".csproj")))
-            {
-                mdReferencedProjects.Add(r);
-            }
-            var mdRootProjects = allProjects.Except(mdReferencedProjects).ToList();
-            var mdTitle = mdRootProjects.Count > 0 ? Path.GetFileNameWithoutExtension(mdRootProjects[0]) : "dependencies";
-            var mermaidMd = GenerateMermaidMarkdown(displayGraph, mdTitle, outputFileName);
-            File.WriteAllText(outputPath, mermaidMd);
-            AnsiConsole.MarkupLine($"[green]Dependency graph written to:[/] {outputPath}");
-        }
-
-        if (changes.Count == 0)
-            AnsiConsole.MarkupLine("[green]No redundant links found.[/]");
-        else
-        {
-            foreach (var change in changes)
-                AnsiConsole.MarkupLine($"[yellow]{change}[/]");
-        }
-
+        ReportChanges(changes);
         return 0;
     }
 
-    private static void PrintReferenceTree(Dictionary<string, List<string>> graph, string proj, object parent, HashSet<string> visited)
+    /// <summary>
+    /// Selects the dependency graph to display based on dry run mode.
+    /// </summary>
+    /// <param name="settings">The command settings. See <see cref="Settings"/>.</param>
+    /// <param name="projects">List of project paths.</param>
+    /// <param name="originalGraph">The original dependency graph.</param>
+    /// <returns>The dependency graph to display.</returns>
+    private static Dictionary<string, List<string>> SelectDisplayGraph(
+        Settings settings,
+        List<string> projects,
+        Dictionary<string, List<string>> originalGraph)
     {
-        visited.Add(proj);
-        foreach (var reference in graph[proj])
+        return settings.DryRun ? originalGraph : ProjectManipulator.BuildDependencyGraph(projects);
+    }
+
+    /// <summary>
+    /// Reports the changes made to project references.
+    /// </summary>
+    /// <param name="changes">List of change descriptions.</param>
+    private static void ReportChanges(List<string> changes)
+    {
+        if (changes.Count == 0)
         {
-            var nodeLabel = reference.EndsWith(".csproj") ? Path.GetFileName(reference) : reference;
-            TreeNode child;
-            switch (parent)
-            {
-                case Tree tree:
-                    child = tree.AddNode(nodeLabel);
-                    break;
-                case TreeNode node:
-                    child = node.AddNode(nodeLabel);
-                    break;
-                default:
-                    continue;
-            }
-            if (reference.EndsWith(".csproj") && !visited.Contains(reference) && graph.ContainsKey(reference))
-            {
-                PrintReferenceTree(graph, reference, child, visited);
-            }
+            AnsiConsole.MarkupLine("[green]No redundant links found.[/]");
+            return;
+        }
+
+        foreach (var change in changes)
+        {
+            AnsiConsole.MarkupLine($"[yellow]{change}[/]");
         }
     }
 
-    private static string GenerateMermaidMarkdown(Dictionary<string, List<string>> graph, string title, string fileName)
+    /// <summary>
+    /// Gets the list of projects and the root path from the provided settings.
+    /// </summary>
+    /// <param name="settings">The command settings. See <see cref="Settings"/>.</param>
+    /// <returns>Tuple containing the list of projects and the root path.</returns>
+    private static (List<string> projects, string rootPath) GetProjectsAndRootPath(Settings settings)
     {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"# {fileName}\n");
-        sb.AppendLine("````mermaid");
-        sb.AppendLine("---");
-        sb.AppendLine($"title: {title}");
-        sb.AppendLine("---");
-        sb.AppendLine("graph TD");
-        foreach (var kvp in graph)
+        bool hasSolution = !string.IsNullOrWhiteSpace(settings.SolutionPath);
+        if (hasSolution)
         {
-            var from = Path.GetFileNameWithoutExtension(kvp.Key);
-            foreach (var toProj in kvp.Value.Where(x => x.EndsWith(".csproj")))
+            var projects = SolutionFileParser.GetAllProjectPaths(settings.SolutionPath).ToList();
+            return (projects, settings.SolutionPath);
+        }
+        else
+        {
+            var projects = ProjectManipulator.CollectAllReferencedProjects(settings.CsprojPath);
+            return (projects, settings.CsprojPath);
+        }
+    }
+
+    /// <summary>
+    /// Validates the input settings for the command.
+    /// </summary>
+    /// <param name="settings">The command settings. See <see cref="Settings"/>.</param>
+    /// <returns>Error message if invalid, otherwise null.</returns>
+    private static string? ValidateInput(Settings settings)
+    {
+        bool hasSolution = !string.IsNullOrWhiteSpace(settings.SolutionPath);
+        bool hasCsproj = !string.IsNullOrWhiteSpace(settings.CsprojPath);
+        
+        if (hasSolution == hasCsproj)
+        {
+            return ("You must specify either --solution or --csproj, but not both.");
+        }
+        
+        if (hasSolution)
+        {
+            if (!File.Exists(settings.SolutionPath))
             {
-                var to = Path.GetFileNameWithoutExtension(toProj);
-                sb.AppendLine($"    {from} --> {to}");
+                return ($"Solution file not found: {settings.SolutionPath}");
+            }
+                
+            var ext = Path.GetExtension(settings.SolutionPath).ToLowerInvariant();
+            if (ext != ".sln" && ext != ".slnx")
+            {
+                return ($"Unsupported solution file extension: {ext}. Only .sln and .slnx are supported.");
             }
         }
-        sb.AppendLine("````");
-        return sb.ToString();
+        else
+        {
+            if (!File.Exists(settings.CsprojPath))
+                return ($"Project file not found: {settings.CsprojPath}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Displays the reference trees for each root project using <see cref="ProjectManipulator.PrintReferenceTree"/>.
+    /// </summary>
+    /// <param name="displayGraph">The dependency graph to display.</param>
+    /// <param name="allProjects">All project paths.</param>
+    private static void DisplayReferenceTrees(Dictionary<string, List<string>> displayGraph, HashSet<string> allProjects)
+    {
+        var displayReferencedProjects = new HashSet<string>();
+        foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(CsProj)))
+        {
+            displayReferencedProjects.Add(r);
+        }
+        var displayRootProjects = allProjects.Except(displayReferencedProjects).ToList();
+        foreach (var proj in displayRootProjects)
+        {
+            var tree = new Tree($"[bold]{Path.GetFileName(proj)}[/]");
+            ProjectManipulator.PrintReferenceTree(displayGraph, proj, tree, []);
+            AnsiConsole.Write(tree);
+        }
+    }
+
+    /// <summary>
+    /// Outputs the dependency graph as a Markdown file with Mermaid syntax using <see cref="GraphMarkdownUtil.GenerateMermaidMarkdown"/>.
+    /// </summary>
+    /// <param name="settings">The command settings. See <see cref="Settings"/>.</param>
+    /// <param name="displayGraph">The dependency graph to display.</param>
+    /// <param name="allProjects">All project paths.</param>
+    /// <param name="rootPath">The root solution or project path.</param>
+    private static void OutputDependencyGraphMarkdown(
+        Settings settings,
+        Dictionary<string, List<string>> displayGraph,
+        HashSet<string> allProjects,
+        string rootPath)
+    {
+        var solutionDir = Path.GetDirectoryName(rootPath);
+        var outputPath = Path.IsPathRooted(settings.GraphMdPath)
+            ? settings.GraphMdPath
+            : Path.Combine(solutionDir ?? string.Empty, settings.GraphMdPath);
+        var outputFileName = Path.GetFileName(outputPath);
+        var mdReferencedProjects = new HashSet<string>();
+        
+        foreach (var r in displayGraph.Values.SelectMany(refs => refs).Where(r => r.EndsWith(CsProj)))
+        {
+            mdReferencedProjects.Add(r);
+        }
+        
+        List<string> mdRootProjects;
+        string mdTitle;
+        bool hasCsproj = !string.IsNullOrWhiteSpace(settings.CsprojPath);
+        if (hasCsproj)
+        {
+            mdRootProjects = [settings.CsprojPath];
+            mdTitle = Path.GetFileNameWithoutExtension(settings.CsprojPath);
+        }
+        else
+        {
+            mdRootProjects = allProjects.Except(mdReferencedProjects).ToList();
+            mdTitle = mdRootProjects.Count > 0 ? Path.GetFileNameWithoutExtension(mdRootProjects[0]) : "dependencies";
+        }
+        
+        var mermaidMd = GraphMarkdownUtil.GenerateMermaidMarkdown(displayGraph, mdTitle, outputFileName, mdRootProjects);
+        File.WriteAllText(outputPath, mermaidMd);
+        AnsiConsole.MarkupLine($"[green]Dependency graph written to:[/] {outputPath}");
     }
 }

@@ -1,4 +1,7 @@
-﻿using System.Xml.Linq;
+﻿using System.Xml;
+using System.Xml.Linq;
+
+using Spectre.Console;
 
 // ReSharper disable once InvertIf
 
@@ -243,6 +246,101 @@ internal class ProjectManipulator
         }
         
         doc.Save(projPath);
+    }
+
+    /// <summary>
+    /// Collects all referenced projects starting from the specified root .csproj file.
+    /// </summary>
+    /// <param name="rootCsproj">The path to the root .csproj file.</param>
+    /// <returns>A <see cref="List{string}"/> containing all referenced project file paths.</returns>
+    /// <seealso cref="GetProjectReferencesFromFile(string)"/>
+    public static List<string> CollectAllReferencedProjects(string rootCsproj)
+    {
+        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var stack = new Stack<string>();
+        stack.Push(rootCsproj);
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (!found.Add(current)) continue;
+            foreach (var reference in GetProjectReferencesFromFile(current)
+                         .Where(reference => reference.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                                             && !found.Contains(reference)
+                                             && File.Exists(reference)))
+            {
+                stack.Push(reference);
+            }
+        }
+        return found.ToList();
+    }
+
+    /// <summary>
+    /// Retrieves the project references from a given .csproj file.
+    /// </summary>
+    /// <param name="csprojPath">The path to the .csproj file.</param>
+    /// <returns>A <see cref="List{string}"/> of project reference file paths.</returns>
+    /// <seealso cref="CollectAllReferencedProjects(string)"/>
+    private static List<string> GetProjectReferencesFromFile(string csprojPath)
+    {
+        var references = new List<string>();
+        try
+        {
+            var doc = new XmlDocument();
+            doc.Load(csprojPath);
+            var nodes = doc.SelectNodes("//ProjectReference[@Include]");
+            if (nodes != null)
+            {
+                var baseDir = Path.GetDirectoryName(csprojPath) ?? string.Empty;
+                references.AddRange(
+                    nodes.OfType<XmlNode>()
+                        .Select(node => node.Attributes?["Include"]?.Value)
+                        .Where(include => !string.IsNullOrWhiteSpace(include))
+                        .Select(include => Path.GetFullPath(Path.Combine(baseDir, include!)))
+                );
+            }
+        }
+        catch
+        {
+            // Ignore parse errors, treat as no references
+        }
+        return references;
+    }
+
+    /// <summary>
+    /// Prints the project reference tree starting from the specified project.
+    /// </summary>
+    /// <param name="graph">A <see cref="Dictionary{string, List{string}}"/> representing the project dependency graph.</param>
+    /// <param name="proj">The current project being processed.</param>
+    /// <param name="parent">The parent node in the tree structure.</param>
+    /// <param name="visited">A <see cref="HashSet{string}"/> of already visited projects to avoid infinite recursion.</param>
+    /// <seealso cref="CollectAllReferencedProjects(string)"/>
+    public static void PrintReferenceTree(
+        Dictionary<string, List<string>> graph,
+        string proj,
+        object parent,
+        HashSet<string> visited)
+    {
+        visited.Add(proj);
+        foreach (var reference in graph[proj])
+        {
+            var nodeLabel = reference.EndsWith(".csproj") ? Path.GetFileName(reference) : reference;
+            TreeNode child;
+            switch (parent)
+            {
+                case Tree tree:
+                    child = tree.AddNode(nodeLabel);
+                    break;
+                case TreeNode node:
+                    child = node.AddNode(nodeLabel);
+                    break;
+                default:
+                    continue;
+            }
+            if (reference.EndsWith(".csproj") && !visited.Contains(reference) && graph.ContainsKey(reference))
+            {
+                PrintReferenceTree(graph, reference, child, visited);
+            }
+        }
     }
 
 }

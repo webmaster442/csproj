@@ -138,26 +138,37 @@ csproj licenseheaders create
 
 ```
 DESCRIPTION:
-Inspect and remove redundant project/NuGet references in solution projects. Optionally outputs a dependency graph in Markdown/Mermaid format.
+Inspect and remove redundant project/NuGet references in solution or project files. Optionally outputs a dependency graph in Markdown/Mermaid format.
 
 USAGE:
     csproj prunelinks [OPTIONS] --solution <SolutionFile.sln>
+    csproj prunelinks [OPTIONS] --csproj <ProjectFile.csproj>
 
 OPTIONS:
     -h, --help           Prints help information
-    -s, --solution       Solution file path (.sln)
+    -s, --solution       Solution file path (.sln or .slnx)
+    --csproj             Project file path (.csproj)
     -D, --dryrun         Only show what would be changed, do not modify files
     -b, --backup         Create a backup of the project file before editing
     -v, --verbose        Show the reference tree for each project
-    --graph-md [file]    Output the dependency graph as a Markdown file with Mermaid syntax. If no file is specified, defaults to <SolutionName>.md in the solution directory.
+    --graph-md [file]    Output the dependency graph as a Markdown file with Mermaid syntax. If no file is specified, defaults to <SolutionName>.md or <ProjectName>.md in the solution/project directory.
+
+Note: You must specify either --solution or --csproj, but not both.
 ```
 
-#### Example: Remove redundant links and output dependency graph
+#### Example: Remove redundant links and output dependency graph for a solution
 
 ```bash
 csproj prunelinks --solution MySolution.sln --graph-md
 ```
 This will create `MySolution.md` in the same directory as the solution, containing a Mermaid graph of project dependencies.
+
+#### Example: Remove redundant links and output dependency graph for a single project
+
+```bash
+csproj prunelinks --csproj MyProject.csproj --graph-md
+```
+This will create `MyProject.md` in the same directory as the project file, containing a Mermaid graph of its dependencies.
 
 #### Example: Specify a custom Markdown output file
 
@@ -165,12 +176,29 @@ This will create `MySolution.md` in the same directory as the solution, containi
 csproj prunelinks --solution MySolution.sln --graph-md dependencies.md
 ```
 
+#### Example: Show reference trees for each root project
+
+```bash
+csproj prunelinks --solution MySolution.sln --verbose
+```
+
+#### Example: Dry run mode (show what would be changed, do not modify files)
+
+```bash
+csproj prunelinks --solution MySolution.sln --dryrun
+```
+
+#### Output
+- If no redundant links are found: `No redundant links found.`
+- If changes are detected, each change is listed in yellow.
+- If --graph-md is specified, a Markdown file with a Mermaid diagram is generated.
+
 #### Example Mermaid Markdown output
 
 ```markdown
 # MySolution.md
 
-````mermaid
+```mermaid
 ---
 title: MySolution
 ---
