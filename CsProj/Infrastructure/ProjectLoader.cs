@@ -26,7 +26,7 @@ internal static class Loader
             }
             else if (solutions.Count == 1)
             {
-                var results = await GetProjectsFromSolutionAsync(solutions[0], logger, cancellationToken).ToListAsync();
+                var results = await GetProjectsFromSolutionAsync(solutions[0], logger, cancellationToken).ToListAsync(cancellationToken);
                 return results;
             }
             else if (projects.Length > 1)
@@ -41,7 +41,7 @@ internal static class Loader
         }
         else if (IsSoltuionFile(path))
         {
-            var results = await GetProjectsFromSolutionAsync(path, logger, cancellationToken).ToListAsync();
+            var results = await GetProjectsFromSolutionAsync(path, logger, cancellationToken).ToListAsync(cancellationToken);
             return results;
         }
         else if (IsCsprojectFile(path))
@@ -53,7 +53,7 @@ internal static class Loader
         return LoadError.NoProjects;
     }
 
-    private static IReadOnlyList<string> GetSolutions(string path)
+    private static List<string> GetSolutions(string path)
     {
         List<string> solutions = new List<string>();
         solutions.AddRange(Directory.GetFiles(path, "*.sln", SearchOption.TopDirectoryOnly));
