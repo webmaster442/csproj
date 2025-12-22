@@ -8,16 +8,16 @@ using Spectre.Console.Cli;
 
 namespace CsProj.Commands;
 
-internal sealed class TargetFrameworkCommand : BaseCommand<TargetFrameworkCommand.Settings>
+internal sealed class TargetFrameworkCommand : BaseModifyCommand<TargetFrameworkCommand.Settings>
 {
-    internal sealed class Settings : BaseSettings
+    internal sealed class Settings : BaseModifySettings
     {
         [Description("The target framework to upgrade to")]
-        [CommandOption("-t|--target")]
+        [CommandOption(CommandOptions.Target)]
         public string TargetFramework { get; set; } = string.Empty;
 
         [Description("The old target framework to upgrade from")]
-        [CommandOption("-o|--old")]
+        [CommandOption(CommandOptions.Old)]
         public string Oldframework { get; set; } = string.Empty;
 
         public override ValidationResult Validate()

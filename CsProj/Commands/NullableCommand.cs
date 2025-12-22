@@ -8,12 +8,12 @@ using Spectre.Console.Cli;
 
 namespace CsProj.Commands;
 
-internal sealed class NullableCommand : BaseCommand<NullableCommand.Settings>
+internal sealed class NullableCommand : BaseModifyCommand<NullableCommand.Settings>
 {
-    internal sealed class Settings : BaseSettings
+    internal sealed class Settings : BaseModifySettings
     {
         [Description("Enable or disable nullable reference types")]
-        [CommandOption("-e|--enable")]
+        [CommandOption(CommandOptions.Enable)]
         public bool Enable { get; set; }
     }
 

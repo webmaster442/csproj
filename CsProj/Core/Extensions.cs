@@ -38,5 +38,10 @@ internal static class Extensions
 
             logger.Info(message);
         }
+
+        public void Info(TimeSpan runtime)
+        {
+            logger.Info($"Operation completed in {runtime.TotalSeconds:N2} seconds.");
+        }
     }
 }

@@ -8,20 +8,20 @@ using Spectre.Console.Cli;
 
 namespace CsProj.Commands;
 
-internal sealed class VersionCommand : BaseCommand<VersionCommand.Settings>
+internal sealed class VersionCommand : BaseModifyCommand<VersionCommand.Settings>
 {
-    internal sealed class Settings : BaseSettings
+    internal sealed class Settings : BaseModifySettings
     {
         [Description("The version prefix to set")]
-        [CommandOption("-v|--version")]
+        [CommandOption(CommandOptions.Version)]
         public System.Version Version { get; set; } = new System.Version(1, 0, 0, 0);
 
         [Description("The file version to set")]
-        [CommandOption("-f|--file")]
+        [CommandOption(CommandOptions.FileVersion)]
         public System.Version? FileVersion { get; set; }
 
         [Description("The file version to set")]
-        [CommandOption("-a|--assembly")]
+        [CommandOption(CommandOptions.AssemblyVersion)]
         public System.Version? AssemblyVersion { get; set; }
     }
 

@@ -5,7 +5,7 @@ using Microsoft.Build.Evaluation;
 namespace CsProj.Core;
 
 
-internal sealed class CsharpProject
+internal sealed class CsharpProject : IReadonlyCsharpProject
 {
     private readonly XDocument _document;
 

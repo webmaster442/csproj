@@ -1,5 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-using CsProj.Domain;
+﻿using CsProj.Domain;
 using CsProj.Infrastructure;
 
 using Microsoft.Extensions.DependencyInjection;

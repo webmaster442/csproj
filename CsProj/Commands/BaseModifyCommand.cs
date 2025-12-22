@@ -7,14 +7,14 @@ using Spectre.Console.Cli;
 
 namespace CsProj.Commands;
 
-internal abstract class BaseCommand<TSettings> : AsyncCommand<TSettings>
-    where TSettings : BaseSettings
+internal abstract class BaseModifyCommand<TSettings> : AsyncCommand<TSettings>
+    where TSettings : BaseModifySettings
 {
     protected readonly ILogger _logger;
     protected readonly IAnsiConsole _console;
     private readonly TimeProvider _timeProvider;
 
-    public BaseCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
+    public BaseModifyCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
     {
         _logger = logger;
         _console = console;
@@ -25,6 +25,18 @@ internal abstract class BaseCommand<TSettings> : AsyncCommand<TSettings>
                                                     TSettings settings,
                                                     CancellationToken cancellationToken)
     {
+        bool isGitRepo = GitDetector.IsInsideGitRepository(settings.Path);
+
+        if (!isGitRepo && !settings.CreateBackup && !settings.Force)
+        {
+            bool confirm = DoConfirmation();
+            if (!confirm)
+            {
+                _logger.Info("Operation cancelled by user.");
+                return ExitCodes.GeneralError;
+            }
+        }
+
         Either<IReadOnlyList<CsharpProject>, LoadError> loadResult
             = await Loader.LoadProjectsAsync(settings.Path, _logger, cancellationToken);
 
@@ -60,16 +72,7 @@ internal abstract class BaseCommand<TSettings> : AsyncCommand<TSettings>
 
                 if (project.WasModified)
                 {
-                    if (settings.CreateBackup)
-                    {
-                        File.Move(project.AbsolutePath, Path.ChangeExtension(project.AbsolutePath, ".bak"));
-                    }
-
-                    await File.WriteAllTextAsync(project.AbsolutePath,
-                                                 project.XmlContent,
-                                                 cancellationToken);
-
-                    _logger.Info("Modified project: {0}", project.AbsolutePath);
+                    await SaveProject(project, settings, cancellationToken);
                     stats.Modified++;
                 }
                 else
@@ -91,6 +94,28 @@ internal abstract class BaseCommand<TSettings> : AsyncCommand<TSettings>
             return ExitCodes.Crash;
         }
 
+    }
+
+    private bool DoConfirmation()
+    {
+        _console.MarkupLine("[yellow]Warning! You are about to modify projects[/]");
+        _console.MarkupLine("[yellow]The specified path is not inside a git repository and you are not backuping files[/]");
+        _console.MarkupLine("[red]Without backup your projects might become corrupted[/]");
+        return _console.Confirm("Do you want to continue?", false);
+    }
+
+    private async Task SaveProject(CsharpProject project, TSettings settings, CancellationToken cancellationToken)
+    {
+        if (settings.CreateBackup)
+        {
+            File.Move(project.AbsolutePath, Path.ChangeExtension(project.AbsolutePath, ".bak"));
+        }
+
+        await File.WriteAllTextAsync(project.AbsolutePath,
+                                     project.XmlContent,
+                                     cancellationToken);
+
+        _logger.Info("Modified project: {0}", project.AbsolutePath);
     }
 
     protected abstract void ModifyProject(CsharpProject project, TSettings settings);
