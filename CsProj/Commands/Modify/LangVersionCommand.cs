@@ -8,7 +8,7 @@ using Spectre.Console.Cli;
 
 namespace CsProj.Commands.Modify;
 
-internal sealed class LangVersionCommand : BaseModifyCommand<LangVersionCommand.Settings>
+internal sealed class LangVersionCommand : BaseModifyProjectCommand<LangVersionCommand.Settings>
 {
     public sealed class Settings : BaseModifySettings
     {

@@ -2,6 +2,8 @@
 
 using CsProj.Core;
 
+using NuGet.Versioning;
+
 namespace CsProj.Tests;
 
 [TestFixture]
@@ -68,7 +70,7 @@ public sealed class UT_CsharpProject
             Assert.That(packageReferences, Has.Count.EqualTo(5));
             Assert.That(sut.WasModified, Is.False);
             Assert.That(packageReferences[0].PackageName, Is.EqualTo("coverlet.collector"));
-            Assert.That(packageReferences[0].Version, Is.EqualTo(new Version(6, 0, 4)));
+            Assert.That(packageReferences[0].Version, Is.EqualTo(new NuGetVersion(6, 0, 4)));
         }
     }
 

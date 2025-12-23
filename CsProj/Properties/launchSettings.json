@@ -2,7 +2,7 @@
   "profiles": {
     "CsProj": {
       "commandName": "Project",
-      "commandLineArgs": "dependencies -o nomnoml e:\\GIT\\BookGen"
+      "commandLineArgs": "modify use-cpm e:\\git\\csproj"
     }
   }
 }

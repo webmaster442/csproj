@@ -1,11 +1,13 @@
-﻿namespace CsProj.Core;
+﻿using NuGet.Versioning;
+
+namespace CsProj.Core;
 
 internal sealed class PackageReference : IEquatable<PackageReference?>
 {
     public string PackageName { get; }
-    public Version? Version { get; }
+    public NuGetVersion? Version { get; }
 
-    public PackageReference(string packageName, Version? version = null)
+    public PackageReference(string packageName, NuGetVersion? version = null)
     {
         PackageName = packageName;
         Version = version;

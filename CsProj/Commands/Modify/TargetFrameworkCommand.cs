@@ -8,7 +8,7 @@ using Spectre.Console.Cli;
 
 namespace CsProj.Commands.Modify;
 
-internal sealed class TargetFrameworkCommand : BaseModifyCommand<TargetFrameworkCommand.Settings>
+internal sealed class TargetFrameworkCommand : BaseModifyProjectCommand<TargetFrameworkCommand.Settings>
 {
     public sealed class Settings : BaseModifySettings
     {

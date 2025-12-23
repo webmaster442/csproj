@@ -46,6 +46,10 @@ app.Configure(config =>
         modify
             .AddCommand<VersionCommand>("version")
             .WithDescription("Set project versions");
+
+        modify
+            .AddCommand<UseCentralPackageManagementCommand>("use-cpm")
+            .WithDescription("Convert projects to use central package management");
     });
 
     config.AddBranch("info", info =>

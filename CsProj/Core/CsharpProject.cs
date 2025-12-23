@@ -1,5 +1,7 @@
 ﻿using System.Xml.Linq;
 
+using NuGet.Versioning;
+
 namespace CsProj.Core;
 
 internal sealed class CsharpProject : IReadonlyCsharpProject
@@ -161,13 +163,9 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
             var versionAttribute = package.Attribute("Version");
             if (includeAttribute != null)
             {
-                Version? version = null;
-                if (versionAttribute != null 
-                    && Version.TryParse(versionAttribute.Value, out var parsedVersion))
-                {
-                    version = parsedVersion;
-                }
-                yield return new(includeAttribute.Value, version);
+                yield return versionAttribute != null
+                    ? new PackageReference(includeAttribute.Value, NuGetVersion.Parse(versionAttribute.Value))
+                    : new PackageReference(includeAttribute.Value, null);
             }
         }
     }
@@ -256,6 +254,25 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
         else
         {
             langVersionElement.Value = versionString;
+        }
+        WasModified = true;
+    }
+
+    public void SetManagePackageVersionsCentrally(bool value)
+    {
+        var managePackageVersionsElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("ManagePackageVersionsCentrally");
+
+        if (managePackageVersionsElement == null)
+        {
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("ManagePackageVersionsCentrally", value.ToString()));
+        }
+        else
+        {
+            managePackageVersionsElement.Value = value.ToString();
         }
         WasModified = true;
     }
