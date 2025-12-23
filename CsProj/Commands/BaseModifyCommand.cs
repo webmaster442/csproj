@@ -1,4 +1,6 @@
-﻿using CsProj.Core;
+﻿using System.Runtime.CompilerServices;
+
+using CsProj.Core;
 using CsProj.Domain;
 using CsProj.Infrastructure;
 
@@ -12,7 +14,7 @@ internal abstract class BaseModifyCommand<TSettings> : AsyncCommand<TSettings>
 {
     protected readonly ILogger _logger;
     protected readonly IAnsiConsole _console;
-    private readonly TimeProvider _timeProvider;
+    protected readonly TimeProvider _timeProvider;
 
     public BaseModifyCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
     {
@@ -27,14 +29,10 @@ internal abstract class BaseModifyCommand<TSettings> : AsyncCommand<TSettings>
     {
         bool isGitRepo = GitDetector.IsInsideGitRepository(settings.Path);
 
-        if (!isGitRepo && !settings.CreateBackup && !settings.Force)
+        (bool result, int exitCode) = ConfirmNoBackup(settings, isGitRepo);
+        if (!result)
         {
-            bool confirm = DoConfirmation();
-            if (!confirm)
-            {
-                _logger.Info("Operation cancelled by user.");
-                return ExitCodes.GeneralError;
-            }
+            return exitCode;
         }
 
         Either<IReadOnlyList<CsharpProject>, LoadError> loadResult
@@ -67,7 +65,7 @@ internal abstract class BaseModifyCommand<TSettings> : AsyncCommand<TSettings>
                 }
 
                 _logger.Info("Porcessing file: {0}", project.AbsolutePath);
-                
+
                 ModifyProject(project, settings);
 
                 if (project.WasModified)
@@ -96,15 +94,25 @@ internal abstract class BaseModifyCommand<TSettings> : AsyncCommand<TSettings>
 
     }
 
-    private bool DoConfirmation()
+    protected (bool result, int exitCode) ConfirmNoBackup(TSettings settings, bool isGitRepo)
     {
-        _console.MarkupLine("[yellow]Warning! You are about to modify projects[/]");
-        _console.MarkupLine("[yellow]The specified path is not inside a git repository and you are not backuping files[/]");
-        _console.MarkupLine("[red]Without backup your projects might become corrupted[/]");
-        return _console.Confirm("Do you want to continue?", false);
+        if (!isGitRepo && !settings.CreateBackup && !settings.Force)
+        {
+            _console.MarkupLine("[yellow]Warning! You are about to modify projects[/]");
+            _console.MarkupLine("[yellow]The specified path is not inside a git repository and you are not backuping files[/]");
+            _console.MarkupLine("[red]Without backup your projects might become corrupted[/]");
+            bool confirm = _console.Confirm("Do you want to continue?", false);
+            if (!confirm)
+            {
+                _logger.Info("Operation cancelled by user.");
+                return (result: false, exitCode: ExitCodes.GeneralError);
+            }
+        }
+
+        return (result: true, exitCode: default);
     }
 
-    private async Task SaveProject(CsharpProject project, TSettings settings, CancellationToken cancellationToken)
+    protected async Task SaveProject(CsharpProject project, TSettings settings, CancellationToken cancellationToken)
     {
         if (settings.CreateBackup)
         {
