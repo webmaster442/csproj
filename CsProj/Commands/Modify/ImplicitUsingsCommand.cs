@@ -6,22 +6,22 @@ using CsProj.Domain;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace CsProj.Commands;
+namespace CsProj.Commands.Modify;
 
-internal sealed class NullableCommand : BaseModifyCommand<NullableCommand.Settings>
+internal sealed class ImplicitUsingsCommand : BaseModifyCommand<ImplicitUsingsCommand.Settings>
 {
     public sealed class Settings : BaseModifySettings
     {
-        [Description("Enable or disable nullable reference types")]
+        [Description("Enable or disable implicit usings types")]
         [CommandOption(CommandOptions.Enable)]
         public bool Enable { get; set; }
     }
 
-    public NullableCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
+    public ImplicitUsingsCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
         : base(logger, console, timeProvider)
     {
     }
 
     protected override void ModifyProject(CsharpProject project, Settings settings)
-        => project.SetNullable(settings.Enable);
+        => project.SetImplicitUsings(settings.Enable);
 }

@@ -3,11 +3,11 @@ using CsProj.Domain;
 
 using Spectre.Console;
 
-namespace CsProj.Commands;
+namespace CsProj.Commands.Info;
 
-internal sealed class ListNugets : BaseReadCommand<BaseReadSettings>
+internal sealed class NugetsCommand : BaseReadCommand<BaseReadSettings>
 {
-    public ListNugets(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
+    public NugetsCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
         : base(logger, console, timeProvider)
     {
     }

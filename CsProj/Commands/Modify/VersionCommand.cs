@@ -6,7 +6,7 @@ using CsProj.Domain;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace CsProj.Commands;
+namespace CsProj.Commands.Modify;
 
 internal sealed class VersionCommand : BaseModifyCommand<VersionCommand.Settings>
 {

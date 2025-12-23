@@ -6,7 +6,7 @@ using CsProj.Domain;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace CsProj.Commands;
+namespace CsProj.Commands.Info;
 
 internal class DependenciesCommand : BaseReadCommand<DependenciesCommand.Settings>
 {
