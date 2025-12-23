@@ -4,8 +4,6 @@ using System.Xml.Linq;
 using CsProj.Core;
 using CsProj.Domain;
 
-using Microsoft.Build.Construction;
-
 namespace CsProj.Infrastructure;
 
 internal static class Loader
@@ -74,24 +72,22 @@ internal static class Loader
                                                                                       ILogger logger,
                                                                                       [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var solution = SolutionFile.Parse(solutionPath);
-        foreach (var project in solution.ProjectsInOrder)
+
+
+        var solution = SolutionFileParser.GetProjectAbsolutePaths(solutionPath);
+        foreach (var project in solution)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 yield break;
             }
-            if (project.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat &&
-                project.RelativePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            if (File.Exists(project))
             {
-                if (File.Exists(project.AbsolutePath))
-                {
-                    yield return await LoadCsProjAsync(project.AbsolutePath, cancellationToken);
-                }
-                else
-                {
-                    logger.Warning("Project file not found: {0}", project.AbsolutePath);
-                }
+                yield return await LoadCsProjAsync(project, cancellationToken);
+            }
+            else
+            {
+                logger.Warning("Project file not found: {0}", project);
             }
         }
     }
