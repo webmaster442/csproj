@@ -36,6 +36,9 @@ app.Configure(config =>
     config
         .AddCommand<CsProj.Commands.ListNugets>("list-nugets")
         .WithDescription("List all NuGet package references in the project(s)");
+
+    config.AddCommand<CsProj.Commands.DependenciesCommand>("dependencies")
+        .WithDescription("Visualize project or package dependencies");
 });
 
 return await app.RunAsync(args);

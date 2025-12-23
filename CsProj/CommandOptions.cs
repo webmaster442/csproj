@@ -10,4 +10,6 @@ internal static class CommandOptions
     public const string Version = "-v|--version";
     public const string FileVersion = "--file";
     public const string AssemblyVersion = "--assembly";
+    public const string OutputType = "-o|--output";
+    public const string DependencyType = "-d|--dependency-type";
 }

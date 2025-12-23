@@ -9,7 +9,7 @@ namespace CsProj.Core;
 
 internal static class Extensions
 {
-    extension (IAnsiConsole console)
+    extension(IAnsiConsole console)
     {
         public void Table<TElement>(IEnumerable<TElement> data)
         {
@@ -26,9 +26,48 @@ internal static class Extensions
             }
             console.Write(table);
         }
+
+        public void Tree(DependencyTree dependencyTree)
+        {
+            foreach (var proj in dependencyTree)
+            {
+                var tree = new Tree($"[bold]{Path.GetFileName(proj.Key).EscapeMarkup()}[/]");
+                PrintReferenceTree(dependencyTree, proj.Key, tree, []);
+                console.Write(tree);
+            }
+        }
+
+        private static void PrintReferenceTree(DependencyTree graph,
+                                      string proj,
+                                      IHasTreeNodes parent,
+                                      HashSet<string> visited)
+        {
+            visited.Add(proj);
+            foreach (var reference in graph[proj])
+            {
+                var nodeLabel = reference.EndsWith(".csproj") ? Path.GetFileName(reference) : reference;
+                TreeNode child;
+                switch (parent)
+                {
+                    case Tree tree:
+                        child = tree.AddNode(nodeLabel);
+                        break;
+                    case TreeNode node:
+                        child = node.AddNode(nodeLabel);
+                        break;
+                    default:
+                        continue;
+                }
+                if (!visited.Contains(reference)
+                    && graph.ContainsKey(reference))
+                {
+                    PrintReferenceTree(graph, reference, child, visited);
+                }
+            }
+        }
     }
 
-    extension (ILogger logger)
+    extension(ILogger logger)
     {
         public void Error(LoadError loadError)
         {
