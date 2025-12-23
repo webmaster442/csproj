@@ -43,9 +43,7 @@ public sealed class UT_CsharpProject
         """;
 
     private static CsharpProject CrateSut()
-    {
-        return new CsharpProject("C:\\Projects\\CsProj.Tests\\CsProj.Tests.csproj", XDocument.Parse(SampleCsProjContent));
-    }
+        => new("C:\\Projects\\CsProj.Tests\\CsProj.Tests.csproj", SampleCsProjContent);
 
     [Test]
     public void EnsureThat_Properties_Are_Correctly_Set()
@@ -133,6 +131,25 @@ public sealed class UT_CsharpProject
             Assert.That(sut.WasModified, Is.True);
             Assert.That(nullableElement, Is.Not.Null);
             Assert.That(nullableElement!.Value, Is.EqualTo("disable"));
+        }
+    }
+
+    [Test]
+    public void EnsureThat_SetImplicitUsings_Works()
+    {
+        CsharpProject sut = CrateSut();
+        sut.SetImplicitUsings(false);
+
+        var implicitUsingsElement = XDocument.Parse(sut.XmlContent)
+            .Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("ImplicitUsings");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(sut.WasModified, Is.True);
+            Assert.That(implicitUsingsElement, Is.Not.Null);
+            Assert.That(implicitUsingsElement!.Value, Is.EqualTo("disable"));
         }
     }
 
@@ -286,6 +303,49 @@ public sealed class UT_CsharpProject
             Assert.That(sut.WasModified, Is.True);
             Assert.That(fileVersionElement, Is.Not.Null);
             Assert.That(fileVersionElement!.Value, Is.EqualTo("2.3.4"));
+        }
+    }
+
+    [Test]
+    public void EnsureThat_SetLangVersion_KnwonValue_Works()
+    {
+        CsharpProject sut = CrateSut();
+        sut.SetLangVersion(LangVersion.Preview);
+
+        var langVersionElement = XDocument.Parse(sut.XmlContent)
+            .Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("LangVersion");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(sut.WasModified, Is.True);
+            Assert.That(langVersionElement, Is.Not.Null);
+            Assert.That(langVersionElement!.Value, Is.EqualTo("preview"));
+        }
+    }
+
+    [TestCase(1, 1, "1")]
+    [TestCase(2, 1, "2")]
+    [TestCase(6, 5, "6")]
+    [TestCase(7, 3, "7.3")]
+    [TestCase(8, 0, "8.0")]
+    [TestCase(9, 0, "9.0")]
+    public void EnsureThat_SetLangVersion_VersionNumber_Works(int major, int minor, string expected)
+    {
+        CsharpProject sut = CrateSut();
+        sut.SetLangVersion(major, minor);
+
+        var langVersionElement = XDocument.Parse(sut.XmlContent)
+            .Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("LangVersion");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(sut.WasModified, Is.True);
+            Assert.That(langVersionElement, Is.Not.Null);
+            Assert.That(langVersionElement!.Value, Is.EqualTo(expected));
         }
     }
 }

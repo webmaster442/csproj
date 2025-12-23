@@ -96,7 +96,6 @@ internal static class Loader
                                                               CancellationToken cancellationToken)
     {
         string xmlContent = await File.ReadAllTextAsync(absolutePath, cancellationToken);
-        XDocument document = XDocument.Parse(xmlContent);
-        return new CsharpProject(absolutePath, document);
+        return new CsharpProject(absolutePath, xmlContent);
     }
 }

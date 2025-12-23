@@ -2,7 +2,7 @@
   "profiles": {
     "CsProj": {
       "commandName": "Project",
-      "commandLineArgs": "list-nugets e:\\old"
+      "commandLineArgs": "dependencies -o nomnoml e:\\GIT\\BookGen"
     }
   }
 }

@@ -6,13 +6,13 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
 {
     private readonly XDocument _document;
 
-    public CsharpProject(string absolutePath, XDocument document)
+    public CsharpProject(string absolutePath, string xmlContent)
     {
+        _document = XDocument.Parse(xmlContent);
         AbsolutePath = absolutePath;
-        _document = document;
         WasModified = false;
 
-        var sdkAttribute = document?.Element("Project")?.Attribute("Sdk");
+        var sdkAttribute = _document.Element("Project")?.Attribute("Sdk");
         IsSdkStyleProject = sdkAttribute != null && !string.IsNullOrWhiteSpace(sdkAttribute.Value);
     }
 
@@ -40,6 +40,28 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
         else
         {
             nullableElement.Value = value;
+        }
+
+        WasModified = true;
+    }
+
+
+    public void SetImplicitUsings(bool enabled)
+    {
+        var value = enabled ? "enable" : "disable";
+        var implicitUsingsElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("ImplicitUsings");
+
+        if (implicitUsingsElement == null)
+        {
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("ImplicitUsings", value));
+        }
+        else
+        {
+            implicitUsingsElement.Value = value;
         }
 
         WasModified = true;
@@ -194,5 +216,47 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
                 WasModified = true;
             }
         }
+    }
+
+    public void SetLangVersion(LangVersion langVersion)
+    {
+        string versionString = langVersion.ToString().ToLowerInvariant();
+
+        var langVersionElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("LangVersion");
+
+        if (langVersionElement == null)
+        {
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("LangVersion", versionString));
+        }
+        else
+        {
+            langVersionElement.Value = versionString;
+        }
+        WasModified = true;
+    }
+
+    public void SetLangVersion(int major, int minor)
+    {
+        string versionString = major < 7 ? $"{major}" : $"{major}.{minor}";
+
+        var langVersionElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("LangVersion");
+
+        if (langVersionElement == null)
+        {
+            _document.Element("Project")
+                ?.Element("PropertyGroup")
+                ?.Add(new XElement("LangVersion", versionString));
+        }
+        else
+        {
+            langVersionElement.Value = versionString;
+        }
+        WasModified = true;
     }
 }

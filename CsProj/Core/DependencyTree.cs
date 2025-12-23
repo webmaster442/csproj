@@ -68,7 +68,7 @@ internal sealed class DependencyTree : IEnumerable<KeyValuePair<string, HashSet<
     {
         StringBuilder sb = new();
         sb.AppendLine("graph TD");
-        foreach (var keyValuePair in _dependencies)
+        foreach (var keyValuePair in _dependencies.OrderByDescending(x => x.Key))
         {
             var from = Path.GetFileNameWithoutExtension(keyValuePair.Key);
             foreach (var toProj in keyValuePair.Value)
@@ -84,7 +84,7 @@ internal sealed class DependencyTree : IEnumerable<KeyValuePair<string, HashSet<
     {
         StringBuilder sb = new();
         sb.AppendLine("#direction: down");
-        foreach (var keyValuePair in _dependencies)
+        foreach (var keyValuePair in _dependencies.OrderByDescending(x => x.Key))
         {
             var from = Path.GetFileNameWithoutExtension(keyValuePair.Key);
             foreach (var toProj in keyValuePair.Value)
@@ -97,7 +97,7 @@ internal sealed class DependencyTree : IEnumerable<KeyValuePair<string, HashSet<
     }
 
     public IEnumerator<KeyValuePair<string, HashSet<string>>> GetEnumerator()
-        => _dependencies.GetEnumerator();
+        => _dependencies.OrderBy(x => x.Key).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
