@@ -7,4 +7,5 @@ internal interface IReadonlyCsharpProject
     string XmlContent { get; }
 
     IEnumerable<PackageReference> GetPackageReferences();
+    IEnumerable<string> GetProjectReferencesAbsolutePath();
 }

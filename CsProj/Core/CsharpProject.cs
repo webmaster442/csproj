@@ -73,7 +73,10 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
 
     public void SetVersion(string versionString)
     {
-        var versionElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("Version");
+        var versionElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("Version");
+
         if (versionElement == null)
         {
             _document.Element("Project")
@@ -109,7 +112,10 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
 
     public void SetFileVersion(string versionString)
     {
-        var fileVersionElement = _document.Element("Project")?.Element("PropertyGroup")?.Element("FileVersion");
+        var fileVersionElement = _document.Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("FileVersion");
+
         if (fileVersionElement == null)
         {
             _document.Element("Project")
@@ -140,6 +146,22 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
                     version = parsedVersion;
                 }
                 yield return new(includeAttribute.Value, version);
+            }
+        }
+    }
+
+    public IEnumerable<string> GetProjectReferencesAbsolutePath()
+    {
+        var projects = _document.Descendants("ProjectReference");
+        foreach (var project in projects)
+        {
+            var includeAttribute = project.Attribute("Include");
+            if (includeAttribute != null)
+            {
+                var referencedProjectPath = Path.GetFullPath(
+                    Path.Combine(Path.GetDirectoryName(AbsolutePath) ?? string.Empty, includeAttribute.Value));
+  
+                yield return referencedProjectPath;
             }
         }
     }

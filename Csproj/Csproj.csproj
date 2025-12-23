@@ -20,4 +20,8 @@
     <PackageReference Include="Spectre.Console.Cli" Version="1.0.0-alpha.0.12" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="CsProj.Tests"/>
+  </ItemGroup>
+
 </Project>
