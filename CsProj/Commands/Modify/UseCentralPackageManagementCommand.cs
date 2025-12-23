@@ -55,7 +55,7 @@ internal sealed class UseCentralPackageManagementCommand : BaseModifyProjectsCom
         var propsFile = Path.Combine(directory, "Directory.Packages.props");
 
         _logger.Info("Writing central package management file to '{0}'.", propsFile);
-        var xml =  CentralPackageReferences.CreateXml(collectedVersions);
+        var xml =  CentralPackageReferences.ConvertToXml(collectedVersions);
         File.WriteAllText(propsFile, xml);
 
         return true;
