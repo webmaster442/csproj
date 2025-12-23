@@ -7,6 +7,54 @@ using Spectre.Console;
 
 namespace CsProj.Commands.Modify;
 
+internal sealed class DontUseCentralPackageManagementCommand : BaseModifyProjectsCommand<DontUseCentralPackageManagementCommand.Settings>
+{
+    public class Settings : BaseModifySettings
+    {
+    }
+    public DontUseCentralPackageManagementCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
+        : base(logger, console, timeProvider)
+    {
+    }
+    protected override bool TryModifyProjects(IEnumerable<CsharpProject> sdkprojects, Settings settings)
+    {
+
+        if (!CentralPackageReferences.TryGetCpmFilePath(settings.Path, out string? cpmFilePath))
+        {
+            _logger.Error("Central package management file path could not be determined.");
+            return false;
+        }
+
+        if (!File.Exists(cpmFilePath))
+        {
+            _logger.Error("Central package management file '{0}' does not exist.", cpmFilePath);
+            return false;
+        }
+
+        _logger.Info("Reading central package management file from '{0}'.", cpmFilePath);
+        var xmlContent = File.ReadAllText(cpmFilePath);
+        var centralPackages = CentralPackageReferences.ParseFromXml(xmlContent);
+
+        foreach (var project in sdkprojects)
+        {
+            project.SetManagePackageVersionsCentrally(false);
+            var packagesInProject = project.GetPackageReferences().Select(x => x.PackageName);
+            foreach (var packageName in packagesInProject)
+            {
+                if (centralPackages.TryGetValue(packageName, out NuGetVersion? version))
+                {
+                    project.SetPackageReference(packageName, version.ToString());
+                }
+            }
+        }
+
+        _logger.Info("Deactivating central package management file '{0}'.", cpmFilePath);
+        File.Move(cpmFilePath, Path.ChangeExtension(cpmFilePath, ".disabled"), true);
+
+        return true;
+    }
+}
+
 internal sealed class UseCentralPackageManagementCommand : BaseModifyProjectsCommand<UseCentralPackageManagementCommand.Settings>
 {
     public class Settings : BaseModifySettings
@@ -44,31 +92,16 @@ internal sealed class UseCentralPackageManagementCommand : BaseModifyProjectsCom
             }
         }
 
-        string directory = GetCpmDirectory(settings.Path);
-
-        if (!Directory.Exists(directory))
+        if (!CentralPackageReferences.TryGetCpmFilePath(settings.Path, out string? cpmFilePath))
         {
-            _logger.Error("The directory '{0}' does not exist.", directory);
+            _logger.Error("Central package management file path could not be determined.");
             return false;
         }
 
-        var propsFile = Path.Combine(directory, "Directory.Packages.props");
-
-        _logger.Info("Writing central package management file to '{0}'.", propsFile);
+        _logger.Info("Writing central package management file to '{0}'.", cpmFilePath);
         var xml =  CentralPackageReferences.ConvertToXml(collectedVersions);
-        File.WriteAllText(propsFile, xml);
+        File.WriteAllText(cpmFilePath, xml);
 
         return true;
-    }
-
-    private static string GetCpmDirectory(string path)
-    {
-        if (File.Exists(path))
-        {
-            // It's a file, return its directory
-            return Path.GetDirectoryName(path)!;
-        }
-        // It's a directory, return it as is
-        return path;
     }
 }

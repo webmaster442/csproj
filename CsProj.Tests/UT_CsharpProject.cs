@@ -327,6 +327,61 @@ public sealed class UT_CsharpProject
         }
     }
 
+    [Test]
+    public void EnsureThat_SetManagePackageVersionsCentrally_Works()
+    {
+        CsharpProject sut = CrateSut();
+        sut.SetManagePackageVersionsCentrally(true);
+
+        var cmpElement = XDocument.Parse(sut.XmlContent)
+            .Element("Project")
+            ?.Element("PropertyGroup")
+            ?.Element("ManagePackageVersionsCentrally");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(sut.WasModified, Is.True);
+            Assert.That(cmpElement, Is.Not.Null);
+            Assert.That(cmpElement!.Value, Is.EqualTo("True"));
+        }
+    }
+
+    [Test]
+    public void EnsureThat_SetPackageReference_AddsCorrectNew()
+    {
+        CsharpProject sut = CrateSut();
+        sut.SetPackageReference("Something.NewStuff", "1.0.0");
+
+        var packageReferences = sut.GetPackageReferences().ToList();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(packageReferences, Has.Count.EqualTo(6));
+            Assert.That(sut.WasModified, Is.True);
+            var newPackage = packageReferences.FirstOrDefault(pr => pr.PackageName == "Something.NewStuff");
+            Assert.That(newPackage, Is.Not.Null);
+            Assert.That(newPackage!.Version, Is.EqualTo(new NuGetVersion(1, 0, 0)));
+        }
+    }
+
+    [Test]
+    public void EnsureThat_SetPackageReference_Modifies()
+    {
+        CsharpProject sut = CrateSut();
+        sut.SetPackageReference("coverlet.collector", "1.0.0");
+
+        var packageReferences = sut.GetPackageReferences().ToList();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(packageReferences, Has.Count.EqualTo(5));
+            Assert.That(sut.WasModified, Is.True);
+            var newPackage = packageReferences.FirstOrDefault(pr => pr.PackageName == "coverlet.collector");
+            Assert.That(newPackage, Is.Not.Null);
+            Assert.That(newPackage!.Version, Is.EqualTo(new NuGetVersion(1, 0, 0)));
+        }
+    }
+
     [TestCase(1, 1, "1")]
     [TestCase(2, 1, "2")]
     [TestCase(6, 5, "6")]

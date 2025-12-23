@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.IO;
+using System.Xml.Linq;
 
 using NuGet.Versioning;
 
@@ -6,6 +7,24 @@ namespace CsProj.Core;
 
 internal static class CentralPackageReferences
 {
+    public static bool TryGetCpmFilePath(string inputPath, out string path)
+    {
+        static string GetCpmDirectory(string path)
+        {
+            if (File.Exists(path))
+            {
+                // It's a file, return its directory
+                return Path.GetDirectoryName(path)!;
+            }
+            // It's a directory, return it as is
+            return path;
+        }
+
+        string directory = GetCpmDirectory(inputPath);
+        path = Path.Combine(directory, "Directory.Packages.props");
+        return Directory.Exists(directory);
+    }
+
     public static string ConvertToXml(IReadOnlyDictionary<string, NuGetVersion> packages)
     {
         var doc = new XDocument(

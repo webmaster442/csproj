@@ -48,8 +48,12 @@ app.Configure(config =>
             .WithDescription("Set project versions");
 
         modify
-            .AddCommand<UseCentralPackageManagementCommand>("use-cpm")
+            .AddCommand<UseCentralPackageManagementCommand>("enable-cpm")
             .WithDescription("Convert projects to use central package management");
+
+        modify
+            .AddCommand<DontUseCentralPackageManagementCommand>("disable-cpm")
+            .WithDescription("Convert projects to not use central package management");
     });
 
     config.AddBranch("info", info =>

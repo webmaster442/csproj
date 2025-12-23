@@ -216,6 +216,47 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
         }
     }
 
+    public void SetPackageReference(string packageName, string versionString)
+    {
+        var packages = _document.Descendants("PackageReference")
+            .Where(pr => pr.Attribute("Include")?.Value == packageName)
+            .ToList();
+
+        if (packages.Count == 0)
+        {
+            var itemGroup = _document.Element("Project")
+                ?.Elements("ItemGroup")
+                .FirstOrDefault();
+            if (itemGroup == null)
+            {
+                itemGroup = new XElement("ItemGroup");
+                _document.Element("Project")?.Add(itemGroup);
+            }
+
+            var newPackageReference = new XElement("PackageReference",
+                new XAttribute("Include", packageName),
+                new XAttribute("Version", versionString));
+            itemGroup.Add(newPackageReference);
+            WasModified = true;
+        }
+        else
+        {
+            foreach (var package in packages)
+            {
+                var versionAttribute = package.Attribute("Version");
+                if (versionAttribute == null)
+                {
+                    package.Add(new XAttribute("Version", versionString));
+                }
+                else
+                {
+                    versionAttribute.Value = versionString;
+                }
+                WasModified = true;
+            }
+        }
+    }
+
     public void SetLangVersion(LangVersion langVersion)
     {
         string versionString = langVersion.ToString().ToLowerInvariant();
