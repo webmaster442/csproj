@@ -54,6 +54,10 @@ app.Configure(config =>
         modify
             .AddCommand<DontUseCentralPackageManagementCommand>("disable-cpm")
             .WithDescription("Convert projects to not use central package management");
+
+        modify
+            .AddCommand<PruneLinksCommand>("prune-links")
+            .WithDescription("Inspect and remove redundant project/NuGet references in solution projects");
     });
 
     config.AddBranch("info", info =>

@@ -8,4 +8,5 @@ internal interface IReadonlyCsharpProject
 
     IEnumerable<PackageReference> GetPackageReferences();
     IEnumerable<string> GetProjectReferencesAbsolutePath();
+    IEnumerable<string> GetRawProjectAndPackageReferences();
 }

@@ -405,4 +405,36 @@ public sealed class UT_CsharpProject
             Assert.That(langVersionElement!.Value, Is.EqualTo(expected));
         }
     }
+
+    [Test]
+    public void EnsureThat_GetRawProjectAndPackageReferences_ReturnsCorrect()
+    {
+        CsharpProject sut = CrateSut();
+        var result = sut.GetRawProjectAndPackageReferences().ToList();
+        string[] expected =
+        {
+            "C:\\Projects\\CsProj\\CsProj.csproj",
+            "coverlet.collector",
+            "Microsoft.NET.Test.Sdk",
+            "NUnit",
+            "NUnit.Analyzers",
+            "NUnit3TestAdapter"
+        };
+
+        Assert.That(result, Is.EquivalentTo(expected));
+    }
+
+    [Test]
+    public void EnsureThat_RemoveProjectReference_Works()
+    {
+        CsharpProject sut = CrateSut();
+        sut.RemoveProjectReference("C:\\Projects\\CsProj\\CsProj.csproj");
+        var projectReferences = sut.GetProjectReferencesAbsolutePath().ToList();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(projectReferences, Has.Count.EqualTo(0));
+            Assert.That(sut.WasModified, Is.True);
+        }
+
+    }
 }

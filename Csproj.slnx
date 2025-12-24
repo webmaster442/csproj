@@ -3,6 +3,9 @@
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
   </Folder>
+  <Folder Name="/Docs/">
+    <File Path="Docs/architecture.md" />
+  </Folder>
   <Project Path="CsProj.Tests/CsProj.Tests.csproj" />
   <Project Path="CsProj/CsProj.csproj" />
 </Solution>

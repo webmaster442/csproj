@@ -317,4 +317,32 @@ internal sealed class CsharpProject : IReadonlyCsharpProject
         }
         WasModified = true;
     }
+
+    public IEnumerable<string> GetRawProjectAndPackageReferences()
+    {
+        IEnumerable<string> projectReferences = _document.Descendants("ProjectReference")
+            .Select(pr => pr.Attribute("Include")?.Value)
+            .Where(include => !string.IsNullOrEmpty(include))
+            .Select(include => Path.GetFullPath(include!, Path.GetDirectoryName(AbsolutePath)!));
+
+        IEnumerable<string> packageReferences = _document.Descendants("PackageReference")
+            .Select(nr => nr.Attribute("Include")?.Value)
+            .Where(pkg => !string.IsNullOrEmpty(pkg))!;
+
+        return projectReferences.Concat(packageReferences);
+    }
+
+    public void RemoveProjectReference(string projectReference)
+    {
+        var refs = _document
+            .Descendants("ProjectReference")
+            .Where(pr => Path.GetFullPath(pr.Attribute("Include")?.Value ?? "", Path.GetDirectoryName(AbsolutePath)!) == projectReference)
+            .ToList();
+
+        foreach (var pr in refs)
+        {
+            pr.Remove();
+            WasModified = true;
+        }
+    }
 }
