@@ -12,10 +12,12 @@ internal sealed class DontUseCentralPackageManagementCommand : BaseModifyProject
     public class Settings : BaseModifySettings
     {
     }
+
     public DontUseCentralPackageManagementCommand(ILogger logger, IAnsiConsole console, TimeProvider timeProvider)
         : base(logger, console, timeProvider)
     {
     }
+
     protected override bool TryModifyProjects(IEnumerable<CsharpProject> sdkprojects, Settings settings)
     {
 

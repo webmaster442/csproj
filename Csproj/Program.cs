@@ -29,31 +29,38 @@ app.Configure(config =>
 
         modify
             .AddCommand<NullableCommand>("implicitusings")
-            .WithDescription("Enable or disable implicit usings");
+            .WithDescription("Enable or disable implicit usings")
+            .WithExample("modify implicitusings solution.sln --enable");
 
         modify
             .AddCommand<LangVersionCommand>("langversion")
-            .WithDescription("Set the C# language version for the project");
+            .WithDescription("Set the C# language version for the project")
+            .WithExample("modify langversion solution.slnx -v preview");
 
         modify
             .AddCommand<NullableCommand>("nullable")
-            .WithDescription("Enable or disable nullable reference types");
+            .WithDescription("Enable or disable nullable reference types")
+            .WithExample("modify nullable c:\\folder --enable");
 
         modify
             .AddCommand<TargetFrameworkCommand>("targetframework")
-            .WithDescription("Set the target framework for the project");
+            .WithDescription("Set the target framework for the project")
+            .WithExample("modify targetframework solution.slnx --old net8.0 --target net10.0");
 
         modify
             .AddCommand<VersionCommand>("version")
-            .WithDescription("Set project versions");
+            .WithDescription("Set project versions")
+            .WithExample("modify version solution.slnx -v 1.0.0.0");
 
         modify
             .AddCommand<UseCentralPackageManagementCommand>("enable-cpm")
-            .WithDescription("Convert projects to use central package management");
+            .WithDescription("Convert projects to use central package management")
+            .WithExample("modify enable-cpm solution.slnx");
 
         modify
             .AddCommand<DontUseCentralPackageManagementCommand>("disable-cpm")
-            .WithDescription("Convert projects to not use central package management");
+            .WithDescription("Convert projects to not use central package management")
+            .WithExample("modify disable-cpm solution.slnx");
 
         modify
             .AddCommand<PruneLinksCommand>("prune-links")
@@ -66,11 +73,13 @@ app.Configure(config =>
 
         info
             .AddCommand<NugetsCommand>("nugets")
-            .WithDescription("List all NuGet package references in the project(s)");
+            .WithDescription("List all NuGet package references in the project(s)")
+            .WithExample("info nugets solution.sln");
 
         info
             .AddCommand<DependenciesCommand>("dependencies")
-            .WithDescription("Visualize project or package dependencies");
+            .WithDescription("Visualize project or package dependencies")
+            .WithExample("info dependencies solution.sln -d project");
     });
 });
 

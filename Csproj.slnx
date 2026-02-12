@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/Docs/">
     <File Path="Docs/architecture.md" />
+    <File Path="readme.md" />
   </Folder>
   <Project Path="CsProj.Tests/CsProj.Tests.csproj" />
   <Project Path="CsProj/CsProj.csproj" />

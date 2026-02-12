@@ -20,7 +20,7 @@ internal sealed class VersionCommand : BaseModifyProjectCommand<VersionCommand.S
         [CommandOption(CommandOptions.FileVersion)]
         public System.Version? FileVersion { get; set; }
 
-        [Description("The file version to set")]
+        [Description("The assembly version to set")]
         [CommandOption(CommandOptions.AssemblyVersion)]
         public System.Version? AssemblyVersion { get; set; }
     }
